@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from plejd.mesh import PlejdMesh
-from plejd.protocol import (
+from plejd_cloud.mesh import PlejdMesh
+from plejd_cloud.protocol import (
     CMD_OUTPUT_STATE_AND_LEVEL,
     TYPE_READ,
     OutputState,

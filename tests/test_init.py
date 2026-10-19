@@ -7,9 +7,9 @@ import inspect
 import types
 from unittest.mock import AsyncMock
 
-import plejd
+import plejd_cloud
 import pytest
-from plejd import (
+from plejd_cloud import (
     PLATFORMS,
     SERVICE_ADD_DEVICE,
     SERVICE_ALL_OFF,
@@ -155,7 +155,7 @@ def _entry(data=None):
 
 
 async def test_setup_starts_coordinator_and_forwards(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     assert await async_setup_entry(hass, entry) is True
@@ -165,7 +165,7 @@ async def test_setup_starts_coordinator_and_forwards(monkeypatch):
 
 
 async def test_setup_registers_device_rename_listener(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     await async_setup_entry(hass, entry)
@@ -176,7 +176,7 @@ async def test_setup_registers_device_rename_listener(monkeypatch):
 
 
 async def test_setup_shuts_down_when_forward_fails(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
 
@@ -190,10 +190,10 @@ async def test_setup_shuts_down_when_forward_fails(monkeypatch):
 
 
 async def test_setup_stops_holiday_mode_when_forward_fails(monkeypatch):
-    from plejd.holiday_mode import DATA_HOLIDAY_MODE
+    from plejd_cloud.holiday_mode import DATA_HOLIDAY_MODE
 
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
-    monkeypatch.setattr(plejd, "PlejdHolidayMode", _FakeHolidayMode)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdHolidayMode", _FakeHolidayMode)
     _FakeCoordinator.instances.clear()
     _FakeHolidayMode.instances.clear()
     _FakeHolidayMode.call_order.clear()
@@ -216,7 +216,7 @@ async def test_setup_stops_holiday_mode_when_forward_fails(monkeypatch):
 
 
 async def test_unload_shuts_down_coordinator(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     entry = _entry()
     entry.runtime_data = _FakeCoordinator(None, entry)
     hass = _hass()
@@ -234,7 +234,7 @@ async def test_failed_unload_keeps_coordinator(monkeypatch):
 
 
 async def test_reload_listener_reloads_entry():
-    from plejd import _async_reload_entry
+    from plejd_cloud import _async_reload_entry
 
     hass, entry = _hass(), _entry()
     await _async_reload_entry(hass, entry)
@@ -246,7 +246,7 @@ async def test_reload_listener_clears_a_stale_pending_marker_after_reloading():
     # direct reload applies whatever the entry currently holds, including that change - so
     # leaving the marker would make the next management operation reload a second time for
     # something already live, a needless teardown and BLE/gateway reconnect.
-    from plejd import _async_reload_entry, schedule_ws
+    from plejd_cloud import _async_reload_entry, schedule_ws
 
     hass, entry = _hass(), _entry()
     hass.data[schedule_ws.DATA_RELOAD_PENDING] = entry.entry_id
@@ -259,7 +259,7 @@ async def test_reload_listener_keeps_a_pending_marker_created_during_its_own_rel
     # A change landing AFTER this reload read the entry is not covered by it, so its marker
     # must survive - otherwise the lock holder skips the follow-up and that change never
     # gets applied until some later reload or a restart.
-    from plejd import _async_reload_entry, schedule_ws
+    from plejd_cloud import _async_reload_entry, schedule_ws
 
     hass, entry = _hass(), _entry()
     schedule_ws.async_mark_reload_pending(hass, entry.entry_id)  # an older, covered change
@@ -281,7 +281,7 @@ async def test_reload_listener_keeps_a_pending_marker_created_during_its_own_rel
 async def test_reload_listener_keeps_the_pending_marker_when_the_reload_is_rejected():
     # Only a reload that actually applied may clear it - otherwise the concurrent change it
     # stands for would be silently dropped.
-    from plejd import _async_reload_entry, schedule_ws
+    from plejd_cloud import _async_reload_entry, schedule_ws
 
     hass, entry = _hass(), _entry()
     hass.config_entries.reload_result = False
@@ -291,7 +291,7 @@ async def test_reload_listener_keeps_the_pending_marker_when_the_reload_is_rejec
 
 
 async def test_reload_listener_skips_when_reload_lock_is_held():
-    from plejd import _async_reload_entry, schedule_ws
+    from plejd_cloud import _async_reload_entry, schedule_ws
 
     hass, entry = _hass(), _entry()
     await schedule_ws.async_get_reload_lock(hass, entry.entry_id).acquire()
@@ -305,7 +305,7 @@ async def test_reload_listener_does_not_mark_pending_for_its_own_update(monkeypa
     # change it's already handling), is not a genuinely concurrent change - so it must not
     # schedule a redundant follow-up reload (issue #94 thread 3: every schedule edit was
     # otherwise reloading twice).
-    from plejd import _async_reload_entry, schedule_ws
+    from plejd_cloud import _async_reload_entry, schedule_ws
 
     hass, entry = _hass(), _entry()
     await schedule_ws.async_get_reload_lock(hass, entry.entry_id).acquire()
@@ -319,7 +319,7 @@ async def test_reload_listener_marks_pending_on_an_unanticipated_concurrent_call
     # genuinely different, concurrent change (e.g. a concurrent options-flow edit) - it must
     # be marked pending so the in-flight lock holder runs a follow-up for it once done
     # (issue #94 thread 2), rather than the change never taking effect.
-    from plejd import _async_reload_entry, schedule_ws
+    from plejd_cloud import _async_reload_entry, schedule_ws
 
     hass, entry = _hass(), _entry()
     await schedule_ws.async_get_reload_lock(hass, entry.entry_id).acquire()
@@ -329,7 +329,7 @@ async def test_reload_listener_marks_pending_on_an_unanticipated_concurrent_call
 
 
 async def test_reload_listener_does_not_mark_pending_for_a_different_entry():
-    from plejd import _async_reload_entry, schedule_ws
+    from plejd_cloud import _async_reload_entry, schedule_ws
 
     hass, entry = _hass(), _entry()
     await schedule_ws.async_get_reload_lock(hass, "some-other-entry").acquire()
@@ -342,7 +342,7 @@ def test_every_platform_module_is_forwarded():
     # Guard against adding a platform file but forgetting to forward it.
     import pathlib
 
-    cc = pathlib.Path(__file__).parent.parent / "custom_components" / "plejd"
+    cc = pathlib.Path(__file__).parent.parent / "custom_components" / "plejd_cloud"
     platform_files = {
         f.stem
         for f in cc.glob("*.py")
@@ -360,21 +360,21 @@ def test_every_platform_module_is_forwarded():
 
 
 async def test_add_device_service_is_registered_on_setup(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     await async_setup_entry(hass, entry)
-    assert f"plejd.{SERVICE_ADD_DEVICE}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_ADD_DEVICE}" in hass.services._handlers
 
 
 def test_input_setting_schema_requires_input_and_button_type():
     import voluptuous as vol
 
     with pytest.raises(vol.Invalid):
-        plejd._INPUT_SETTING_SCHEMA({"button_type": "Toggle"})
+        plejd_cloud._INPUT_SETTING_SCHEMA({"button_type": "Toggle"})
     with pytest.raises(vol.Invalid):
-        plejd._INPUT_SETTING_SCHEMA({"input": 0})
-    assert plejd._INPUT_SETTING_SCHEMA({"input": 0, "button_type": "Toggle"}) == {
+        plejd_cloud._INPUT_SETTING_SCHEMA({"input": 0})
+    assert plejd_cloud._INPUT_SETTING_SCHEMA({"input": 0, "button_type": "Toggle"}) == {
         "input": 0,
         "button_type": "Toggle",
     }
@@ -384,9 +384,11 @@ def test_add_device_schema_rejects_invalid_room_category():
     import voluptuous as vol
 
     with pytest.raises(vol.Invalid):
-        plejd._ADD_DEVICE_SCHEMA({"device_address": "AA:BB:CC:DD:EE:FF", "name": "X", "room_category": "KidsRoom"})
+        plejd_cloud._ADD_DEVICE_SCHEMA(
+            {"device_address": "AA:BB:CC:DD:EE:FF", "name": "X", "room_category": "KidsRoom"}
+        )
     assert (
-        plejd._ADD_DEVICE_SCHEMA({"device_address": "AA:BB:CC:DD:EE:FF", "name": "X", "room_category": "Garage"})[
+        plejd_cloud._ADD_DEVICE_SCHEMA({"device_address": "AA:BB:CC:DD:EE:FF", "name": "X", "room_category": "Garage"})[
             "room_category"
         ]
         == "Garage"
@@ -397,16 +399,16 @@ def test_update_room_schema_rejects_negative_order():
     import voluptuous as vol
 
     with pytest.raises(vol.Invalid):
-        plejd._UPDATE_ROOM_SCHEMA({"room_id": "r1", "order": -1})
-    assert plejd._UPDATE_ROOM_SCHEMA({"room_id": "r1", "order": 0})["order"] == 0
+        plejd_cloud._UPDATE_ROOM_SCHEMA({"room_id": "r1", "order": -1})
+    assert plejd_cloud._UPDATE_ROOM_SCHEMA({"room_id": "r1", "order": 0})["order"] == 0
 
 
 def test_update_room_schema_rejects_invalid_category():
     import voluptuous as vol
 
     with pytest.raises(vol.Invalid):
-        plejd._UPDATE_ROOM_SCHEMA({"room_id": "r1", "category": "NotARealCategory"})
-    assert plejd._UPDATE_ROOM_SCHEMA({"room_id": "r1", "category": "Kitchen"})["category"] == "Kitchen"
+        plejd_cloud._UPDATE_ROOM_SCHEMA({"room_id": "r1", "category": "NotARealCategory"})
+    assert plejd_cloud._UPDATE_ROOM_SCHEMA({"room_id": "r1", "category": "Kitchen"})["category"] == "Kitchen"
 
 
 _VALID_STEP = {"device_id": "d1", "output": 0, "state": "On", "value": 255}
@@ -416,24 +418,24 @@ def test_scene_step_schema_rejects_invalid_state():
     import voluptuous as vol
 
     with pytest.raises(vol.Invalid):
-        plejd._SCENE_STEP_SCHEMA({**_VALID_STEP, "state": "NotARealState"})
-    assert plejd._SCENE_STEP_SCHEMA(_VALID_STEP)["state"] == "On"
+        plejd_cloud._SCENE_STEP_SCHEMA({**_VALID_STEP, "state": "NotARealState"})
+    assert plejd_cloud._SCENE_STEP_SCHEMA(_VALID_STEP)["state"] == "On"
 
 
 def test_create_scene_schema_rejects_negative_order():
     import voluptuous as vol
 
     with pytest.raises(vol.Invalid):
-        plejd._CREATE_SCENE_SCHEMA({"title": "X", "scene_steps": [_VALID_STEP], "order": -1})
-    assert plejd._CREATE_SCENE_SCHEMA({"title": "X", "scene_steps": [_VALID_STEP]})["order"] == 0
+        plejd_cloud._CREATE_SCENE_SCHEMA({"title": "X", "scene_steps": [_VALID_STEP], "order": -1})
+    assert plejd_cloud._CREATE_SCENE_SCHEMA({"title": "X", "scene_steps": [_VALID_STEP]})["order"] == 0
 
 
 def test_update_scene_schema_rejects_negative_order():
     import voluptuous as vol
 
     with pytest.raises(vol.Invalid):
-        plejd._UPDATE_SCENE_SCHEMA({"scene_id": "s1", "order": -1})
-    assert plejd._UPDATE_SCENE_SCHEMA({"scene_id": "s1", "order": 0})["order"] == 0
+        plejd_cloud._UPDATE_SCENE_SCHEMA({"scene_id": "s1", "order": -1})
+    assert plejd_cloud._UPDATE_SCENE_SCHEMA({"scene_id": "s1", "order": 0})["order"] == 0
 
 
 async def test_add_device_service_survives_entry_unload_cleanup(monkeypatch):
@@ -441,16 +443,16 @@ async def test_add_device_service_survives_entry_unload_cleanup(monkeypatch):
     # since HA runs every already-registered on_unload callback as cleanup when
     # async_setup_entry raises ConfigEntryNotReady - if this service were removed by that
     # cleanup, it would flicker unavailable on every failed mesh-connection retry.
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     unloads: list = []
     entry.async_on_unload = unloads.append
     await async_setup_entry(hass, entry)
-    assert f"plejd.{SERVICE_ADD_DEVICE}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_ADD_DEVICE}" in hass.services._handlers
     for unload in unloads:
         await _run_unload(unload)
-    assert f"plejd.{SERVICE_ADD_DEVICE}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_ADD_DEVICE}" in hass.services._handlers
 
 
 async def test_remove_device_service_survives_a_mesh_connection_failure(monkeypatch):
@@ -465,29 +467,29 @@ async def test_remove_device_service_survives_a_mesh_connection_failure(monkeypa
         async def async_start(self):
             raise ConfigEntryNotReady("mesh unreachable")
 
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FailingCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FailingCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     unloads: list = []
     entry.async_on_unload = unloads.append
     with pytest.raises(ConfigEntryNotReady):
         await async_setup_entry(hass, entry)
-    assert f"plejd.{SERVICE_REMOVE_DEVICE}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_REMOVE_DEVICE}" in hass.services._handlers
     for unload in unloads:
         await _run_unload(unload)
-    assert f"plejd.{SERVICE_REMOVE_DEVICE}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_REMOVE_DEVICE}" in hass.services._handlers
 
 
 async def test_add_device_service_forwards_call_data(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
 
     add_device = AsyncMock()
-    monkeypatch.setattr(plejd, "async_add_device", add_device)
+    monkeypatch.setattr(plejd_cloud, "async_add_device", add_device)
 
     await async_setup_entry(hass, entry)
-    handler = hass.services._handlers[f"plejd.{SERVICE_ADD_DEVICE}"]
+    handler = hass.services._handlers[f"plejd_cloud.{SERVICE_ADD_DEVICE}"]
     call = types.SimpleNamespace(
         data={
             "device_address": "AA:BB:CC:DD:EE:FF",
@@ -517,15 +519,15 @@ async def test_add_device_service_forwards_call_data(monkeypatch):
 
 
 async def test_add_device_service_forwards_defaults(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
 
     add_device = AsyncMock()
-    monkeypatch.setattr(plejd, "async_add_device", add_device)
+    monkeypatch.setattr(plejd_cloud, "async_add_device", add_device)
 
     await async_setup_entry(hass, entry)
-    handler = hass.services._handlers[f"plejd.{SERVICE_ADD_DEVICE}"]
+    handler = hass.services._handlers[f"plejd_cloud.{SERVICE_ADD_DEVICE}"]
     call = types.SimpleNamespace(data={"device_address": "AA:BB:CC:DD:EE:FF", "name": "X"})
     await handler(call)
 
@@ -548,7 +550,7 @@ async def test_add_device_service_forwards_defaults(monkeypatch):
 
 def _fake_service_info(address, service_uuids, mfr_data, rssi=-70, name=None):
     """Build a minimal BluetoothServiceInfoBleak stand-in for scanner tests."""
-    from plejd.const import PLEJD_SERVICE_UUID
+    from plejd_cloud.const import PLEJD_SERVICE_UUID
 
     return types.SimpleNamespace(
         address=address,
@@ -560,34 +562,34 @@ def _fake_service_info(address, service_uuids, mfr_data, rssi=-70, name=None):
 
 
 async def test_scan_service_is_registered_on_setup(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     await async_setup_entry(hass, entry)
-    assert f"plejd.{SERVICE_SCAN_DEVICES}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_SCAN_DEVICES}" in hass.services._handlers
 
 
 async def test_scan_raises_when_bluetooth_unavailable(monkeypatch):
     from homeassistant.exceptions import HomeAssistantError
 
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     hass.scanner_count = 0  # no local adapter, no ESPHome Bluetooth proxy
     await async_setup_entry(hass, entry)
-    handler = hass.services._handlers[f"plejd.{SERVICE_SCAN_DEVICES}"]
+    handler = hass.services._handlers[f"plejd_cloud.{SERVICE_SCAN_DEVICES}"]
     with pytest.raises(HomeAssistantError, match="Bluetooth is not available"):
         await handler(types.SimpleNamespace(data={}))
 
 
 async def test_scan_finds_unprovisioned_on_default_mesh(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     # LoginByte 0x08 = IsOnDefaultMesh, hardware_id byte at offset 3 = 1 (DIM-01)
     hass.service_infos = [_fake_service_info("AA:BB:CC:DD:EE:FF", None, {887: bytes([0x08, 0, 0, 1])})]
     await async_setup_entry(hass, entry)
-    handler = hass.services._handlers[f"plejd.{SERVICE_SCAN_DEVICES}"]
+    handler = hass.services._handlers[f"plejd_cloud.{SERVICE_SCAN_DEVICES}"]
     await handler(types.SimpleNamespace(data={}))
     scans = [f for f in hass.bus.fired if f[0] == "plejd_new_devices_found"]
     assert len(scans) == 1
@@ -600,33 +602,33 @@ async def test_scan_finds_unprovisioned_on_default_mesh(monkeypatch):
 
 
 async def test_scan_finds_unclaimed_device(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     # LoginByte 0x00 = no flags set = unclaimed; hardware_id at offset 3 = 3 (CTR-01)
     hass.service_infos = [_fake_service_info("11:22:33:44:55:66", None, {887: bytes([0x00, 0, 0, 3])})]
     await async_setup_entry(hass, entry)
-    handler = hass.services._handlers[f"plejd.{SERVICE_SCAN_DEVICES}"]
+    handler = hass.services._handlers[f"plejd_cloud.{SERVICE_SCAN_DEVICES}"]
     await handler(types.SimpleNamespace(data={}))
     devs = [f for f in hass.bus.fired if f[0] == "plejd_new_devices_found"][0][1]["devices"]
     assert devs[0]["model"] == "CTR-01"
 
 
 async def test_scan_excludes_provisioned_device(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     # LoginByte 0x07 = all three provisioning bits set, not on default mesh → provisioned
     hass.service_infos = [_fake_service_info("AA:BB:CC:DD:EE:FF", None, {887: bytes([0x07, 0, 0, 1])})]
     await async_setup_entry(hass, entry)
-    handler = hass.services._handlers[f"plejd.{SERVICE_SCAN_DEVICES}"]
+    handler = hass.services._handlers[f"plejd_cloud.{SERVICE_SCAN_DEVICES}"]
     await handler(types.SimpleNamespace(data={}))
     devs = [f for f in hass.bus.fired if f[0] == "plejd_new_devices_found"][0][1]["devices"]
     assert devs == []
 
 
 async def test_scan_excludes_non_plejd_devices(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     # Different service UUID — not a Plejd device
@@ -634,19 +636,19 @@ async def test_scan_excludes_non_plejd_devices(monkeypatch):
         _fake_service_info("AA:BB:CC:DD:EE:FF", ["0000180a-0000-1000-8000-00805f9b34fb"], {887: bytes([0x08, 0, 0, 1])})
     ]
     await async_setup_entry(hass, entry)
-    handler = hass.services._handlers[f"plejd.{SERVICE_SCAN_DEVICES}"]
+    handler = hass.services._handlers[f"plejd_cloud.{SERVICE_SCAN_DEVICES}"]
     await handler(types.SimpleNamespace(data={}))
     devs = [f for f in hass.bus.fired if f[0] == "plejd_new_devices_found"][0][1]["devices"]
     assert devs == []
 
 
 async def test_scan_fires_event_with_empty_list_when_no_devices(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     hass.service_infos = []
     await async_setup_entry(hass, entry)
-    handler = hass.services._handlers[f"plejd.{SERVICE_SCAN_DEVICES}"]
+    handler = hass.services._handlers[f"plejd_cloud.{SERVICE_SCAN_DEVICES}"]
     await handler(types.SimpleNamespace(data={}))
     assert [f for f in hass.bus.fired if f[0] == "plejd_new_devices_found"] == [
         ("plejd_new_devices_found", {"devices": []})
@@ -657,30 +659,30 @@ async def test_scan_fires_event_with_empty_list_when_no_devices(monkeypatch):
 
 
 async def test_all_off_service_is_registered_on_setup(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     await async_setup_entry(hass, entry)
-    assert f"plejd.{SERVICE_ALL_OFF}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_ALL_OFF}" in hass.services._handlers
 
 
 async def test_all_off_service_survives_entry_unload_cleanup(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     unloads: list = []
     entry.async_on_unload = unloads.append
     await async_setup_entry(hass, entry)
-    assert f"plejd.{SERVICE_ALL_OFF}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_ALL_OFF}" in hass.services._handlers
     for unload in unloads:
         await _run_unload(unload)
-    assert f"plejd.{SERVICE_ALL_OFF}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_ALL_OFF}" in hass.services._handlers
 
 
 async def test_unload_callbacks_return_nothing_ha_would_try_to_schedule(monkeypatch):
     # HA schedules any non-None on_unload return value as a task, so a callback that
     # returns e.g. the object it popped crashes the unload (and every entry reload).
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     unloads: list = []
@@ -692,7 +694,7 @@ async def test_unload_callbacks_return_nothing_ha_would_try_to_schedule(monkeypa
 
 
 async def test_setup_tells_an_open_dashboard_to_reload_rooms(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     await async_setup_entry(hass, entry)
@@ -700,11 +702,11 @@ async def test_setup_tells_an_open_dashboard_to_reload_rooms(monkeypatch):
 
 
 async def test_all_off_service_calls_coordinator(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     await async_setup_entry(hass, entry)
-    handler = hass.services._handlers[f"plejd.{SERVICE_ALL_OFF}"]
+    handler = hass.services._handlers[f"plejd_cloud.{SERVICE_ALL_OFF}"]
     await handler(types.SimpleNamespace(data={}))
     assert entry.runtime_data.all_off_calls == 1
 
@@ -714,11 +716,11 @@ async def test_all_off_service_uses_the_current_coordinator_after_a_retry(monkey
     # skips re-registering on a later successful retry), so it must look up
     # entry.runtime_data fresh at call time rather than close over the first attempt's
     # (failed) coordinator instance.
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     await async_setup_entry(hass, entry)  # first attempt
-    handler = hass.services._handlers[f"plejd.{SERVICE_ALL_OFF}"]
+    handler = hass.services._handlers[f"plejd_cloud.{SERVICE_ALL_OFF}"]
     await async_setup_entry(hass, entry)  # simulated retry: new coordinator instance
     await handler(types.SimpleNamespace(data={}))
     assert entry.runtime_data is _FakeCoordinator.instances[-1]
@@ -734,36 +736,36 @@ async def test_all_off_service_uses_the_current_coordinator_after_a_retry(monkey
 
 
 async def test_update_room_service_is_registered_on_setup(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     await async_setup_entry(hass, entry)
-    assert f"plejd.{SERVICE_UPDATE_ROOM}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_UPDATE_ROOM}" in hass.services._handlers
 
 
 async def test_update_room_service_survives_entry_unload_cleanup(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     unloads: list = []
     entry.async_on_unload = unloads.append
     await async_setup_entry(hass, entry)
-    assert f"plejd.{SERVICE_UPDATE_ROOM}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_UPDATE_ROOM}" in hass.services._handlers
     for unload in unloads:
         await _run_unload(unload)
-    assert f"plejd.{SERVICE_UPDATE_ROOM}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_UPDATE_ROOM}" in hass.services._handlers
 
 
 async def test_update_room_service_forwards_call_data(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
 
     update_room = AsyncMock()
-    monkeypatch.setattr(plejd, "async_update_room", update_room)
+    monkeypatch.setattr(plejd_cloud, "async_update_room", update_room)
 
     await async_setup_entry(hass, entry)
-    handler = hass.services._handlers[f"plejd.{SERVICE_UPDATE_ROOM}"]
+    handler = hass.services._handlers[f"plejd_cloud.{SERVICE_UPDATE_ROOM}"]
     call = types.SimpleNamespace(data={"room_id": "r1", "title": "Kök", "order": 2, "category": "Kitchen"})
     await handler(call)
 
@@ -775,69 +777,69 @@ async def test_update_room_service_rebinds_to_a_new_entry_after_reinstall(monkey
     # skips re-registering later), so removing the integration and adding it again
     # (a genuinely different ConfigEntry object, not just a retry of the same one) must
     # still route to the new entry, not the one the closures were first created for.
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry1 = _hass(), _entry()
     await async_setup_entry(hass, entry1)
-    handler = hass.services._handlers[f"plejd.{SERVICE_UPDATE_ROOM}"]
+    handler = hass.services._handlers[f"plejd_cloud.{SERVICE_UPDATE_ROOM}"]
 
     entry2 = _entry()
     entry2.entry_id = "e2"
     await async_setup_entry(hass, entry2)
 
     update_room = AsyncMock()
-    monkeypatch.setattr(plejd, "async_update_room", update_room)
+    monkeypatch.setattr(plejd_cloud, "async_update_room", update_room)
     await handler(types.SimpleNamespace(data={"room_id": "r1"}))
 
     update_room.assert_awaited_once_with(hass, entry2, room_id="r1", title=None, order=None, category=None)
 
 
 async def test_update_room_service_forwards_defaults(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
 
     update_room = AsyncMock()
-    monkeypatch.setattr(plejd, "async_update_room", update_room)
+    monkeypatch.setattr(plejd_cloud, "async_update_room", update_room)
 
     await async_setup_entry(hass, entry)
-    handler = hass.services._handlers[f"plejd.{SERVICE_UPDATE_ROOM}"]
+    handler = hass.services._handlers[f"plejd_cloud.{SERVICE_UPDATE_ROOM}"]
     await handler(types.SimpleNamespace(data={"room_id": "r1"}))
 
     update_room.assert_awaited_once_with(hass, entry, room_id="r1", title=None, order=None, category=None)
 
 
 async def test_remove_room_service_is_registered_on_setup(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     await async_setup_entry(hass, entry)
-    assert f"plejd.{SERVICE_REMOVE_ROOM}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_REMOVE_ROOM}" in hass.services._handlers
 
 
 async def test_remove_room_service_survives_entry_unload_cleanup(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     unloads: list = []
     entry.async_on_unload = unloads.append
     await async_setup_entry(hass, entry)
-    assert f"plejd.{SERVICE_REMOVE_ROOM}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_REMOVE_ROOM}" in hass.services._handlers
     for unload in unloads:
         await _run_unload(unload)
-    assert f"plejd.{SERVICE_REMOVE_ROOM}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_REMOVE_ROOM}" in hass.services._handlers
 
 
 async def test_remove_room_service_forwards_call_data(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
 
     remove_room = AsyncMock()
-    monkeypatch.setattr(plejd, "async_remove_room", remove_room)
+    monkeypatch.setattr(plejd_cloud, "async_remove_room", remove_room)
 
     await async_setup_entry(hass, entry)
-    handler = hass.services._handlers[f"plejd.{SERVICE_REMOVE_ROOM}"]
+    handler = hass.services._handlers[f"plejd_cloud.{SERVICE_REMOVE_ROOM}"]
     await handler(types.SimpleNamespace(data={"room_id": "r1"}))
 
     remove_room.assert_awaited_once_with(hass, entry, room_id="r1")
@@ -853,36 +855,36 @@ _STEP = {"device_id": "d1", "output": 0, "state": "On", "value": 255}
 
 
 async def test_create_scene_service_is_registered_on_setup(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     await async_setup_entry(hass, entry)
-    assert f"plejd.{SERVICE_CREATE_SCENE}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_CREATE_SCENE}" in hass.services._handlers
 
 
 async def test_create_scene_service_survives_entry_unload_cleanup(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     unloads: list = []
     entry.async_on_unload = unloads.append
     await async_setup_entry(hass, entry)
-    assert f"plejd.{SERVICE_CREATE_SCENE}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_CREATE_SCENE}" in hass.services._handlers
     for unload in unloads:
         await _run_unload(unload)
-    assert f"plejd.{SERVICE_CREATE_SCENE}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_CREATE_SCENE}" in hass.services._handlers
 
 
 async def test_create_scene_service_forwards_call_data(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
 
     create_scene = AsyncMock()
-    monkeypatch.setattr(plejd, "async_create_scene", create_scene)
+    monkeypatch.setattr(plejd_cloud, "async_create_scene", create_scene)
 
     await async_setup_entry(hass, entry)
-    handler = hass.services._handlers[f"plejd.{SERVICE_CREATE_SCENE}"]
+    handler = hass.services._handlers[f"plejd_cloud.{SERVICE_CREATE_SCENE}"]
     call = types.SimpleNamespace(
         data={"title": "Movie Night", "scene_steps": [_STEP], "order": 2, "hidden_from_scene_list": True}
     )
@@ -894,36 +896,36 @@ async def test_create_scene_service_forwards_call_data(monkeypatch):
 
 
 async def test_update_scene_service_is_registered_on_setup(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     await async_setup_entry(hass, entry)
-    assert f"plejd.{SERVICE_UPDATE_SCENE}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_UPDATE_SCENE}" in hass.services._handlers
 
 
 async def test_update_scene_service_survives_entry_unload_cleanup(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     unloads: list = []
     entry.async_on_unload = unloads.append
     await async_setup_entry(hass, entry)
-    assert f"plejd.{SERVICE_UPDATE_SCENE}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_UPDATE_SCENE}" in hass.services._handlers
     for unload in unloads:
         await _run_unload(unload)
-    assert f"plejd.{SERVICE_UPDATE_SCENE}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_UPDATE_SCENE}" in hass.services._handlers
 
 
 async def test_update_scene_service_forwards_call_data(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
 
     update_scene = AsyncMock()
-    monkeypatch.setattr(plejd, "async_update_scene", update_scene)
+    monkeypatch.setattr(plejd_cloud, "async_update_scene", update_scene)
 
     await async_setup_entry(hass, entry)
-    handler = hass.services._handlers[f"plejd.{SERVICE_UPDATE_SCENE}"]
+    handler = hass.services._handlers[f"plejd_cloud.{SERVICE_UPDATE_SCENE}"]
     call = types.SimpleNamespace(
         data={"scene_id": "s1", "title": "X", "order": 1, "scene_steps": [_STEP], "hidden_from_scene_list": False}
     )
@@ -935,15 +937,15 @@ async def test_update_scene_service_forwards_call_data(monkeypatch):
 
 
 async def test_update_scene_service_forwards_defaults(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
 
     update_scene = AsyncMock()
-    monkeypatch.setattr(plejd, "async_update_scene", update_scene)
+    monkeypatch.setattr(plejd_cloud, "async_update_scene", update_scene)
 
     await async_setup_entry(hass, entry)
-    handler = hass.services._handlers[f"plejd.{SERVICE_UPDATE_SCENE}"]
+    handler = hass.services._handlers[f"plejd_cloud.{SERVICE_UPDATE_SCENE}"]
     await handler(types.SimpleNamespace(data={"scene_id": "s1"}))
 
     update_scene.assert_awaited_once_with(
@@ -952,36 +954,36 @@ async def test_update_scene_service_forwards_defaults(monkeypatch):
 
 
 async def test_remove_scene_service_is_registered_on_setup(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     await async_setup_entry(hass, entry)
-    assert f"plejd.{SERVICE_REMOVE_SCENE}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_REMOVE_SCENE}" in hass.services._handlers
 
 
 async def test_remove_scene_service_survives_entry_unload_cleanup(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     unloads: list = []
     entry.async_on_unload = unloads.append
     await async_setup_entry(hass, entry)
-    assert f"plejd.{SERVICE_REMOVE_SCENE}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_REMOVE_SCENE}" in hass.services._handlers
     for unload in unloads:
         await _run_unload(unload)
-    assert f"plejd.{SERVICE_REMOVE_SCENE}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_REMOVE_SCENE}" in hass.services._handlers
 
 
 async def test_remove_scene_service_forwards_call_data(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
 
     remove_scene = AsyncMock()
-    monkeypatch.setattr(plejd, "async_remove_scene", remove_scene)
+    monkeypatch.setattr(plejd_cloud, "async_remove_scene", remove_scene)
 
     await async_setup_entry(hass, entry)
-    handler = hass.services._handlers[f"plejd.{SERVICE_REMOVE_SCENE}"]
+    handler = hass.services._handlers[f"plejd_cloud.{SERVICE_REMOVE_SCENE}"]
     await handler(types.SimpleNamespace(data={"scene_id": "s1"}))
 
     remove_scene.assert_awaited_once_with(hass, entry, scene_id="s1")
@@ -994,36 +996,36 @@ async def test_remove_scene_service_forwards_call_data(monkeypatch):
 
 
 async def test_remove_device_service_is_registered_on_setup(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     await async_setup_entry(hass, entry)
-    assert f"plejd.{SERVICE_REMOVE_DEVICE}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_REMOVE_DEVICE}" in hass.services._handlers
 
 
 async def test_remove_device_service_survives_entry_unload_cleanup(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     unloads: list = []
     entry.async_on_unload = unloads.append
     await async_setup_entry(hass, entry)
-    assert f"plejd.{SERVICE_REMOVE_DEVICE}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_REMOVE_DEVICE}" in hass.services._handlers
     for unload in unloads:
         await _run_unload(unload)
-    assert f"plejd.{SERVICE_REMOVE_DEVICE}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_REMOVE_DEVICE}" in hass.services._handlers
 
 
 async def test_remove_device_service_forwards_call_data(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
 
     remove_device = AsyncMock()
-    monkeypatch.setattr(plejd, "async_remove_device", remove_device)
+    monkeypatch.setattr(plejd_cloud, "async_remove_device", remove_device)
 
     await async_setup_entry(hass, entry)
-    handler = hass.services._handlers[f"plejd.{SERVICE_REMOVE_DEVICE}"]
+    handler = hass.services._handlers[f"plejd_cloud.{SERVICE_REMOVE_DEVICE}"]
     await handler(types.SimpleNamespace(data={"device_id": "d1"}))
 
     remove_device.assert_awaited_once_with(hass, entry, device_id="d1")
@@ -1036,36 +1038,36 @@ async def test_remove_device_service_forwards_call_data(monkeypatch):
 
 
 async def test_move_device_to_room_service_is_registered_on_setup(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     await async_setup_entry(hass, entry)
-    assert f"plejd.{SERVICE_MOVE_DEVICE_TO_ROOM}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_MOVE_DEVICE_TO_ROOM}" in hass.services._handlers
 
 
 async def test_move_device_to_room_service_survives_entry_unload_cleanup(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     unloads: list = []
     entry.async_on_unload = unloads.append
     await async_setup_entry(hass, entry)
-    assert f"plejd.{SERVICE_MOVE_DEVICE_TO_ROOM}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_MOVE_DEVICE_TO_ROOM}" in hass.services._handlers
     for unload in unloads:
         await _run_unload(unload)
-    assert f"plejd.{SERVICE_MOVE_DEVICE_TO_ROOM}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_MOVE_DEVICE_TO_ROOM}" in hass.services._handlers
 
 
 async def test_move_device_to_room_service_forwards_call_data(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
 
     move_device_to_room = AsyncMock()
-    monkeypatch.setattr(plejd, "async_move_device_to_room", move_device_to_room)
+    monkeypatch.setattr(plejd_cloud, "async_move_device_to_room", move_device_to_room)
 
     await async_setup_entry(hass, entry)
-    handler = hass.services._handlers[f"plejd.{SERVICE_MOVE_DEVICE_TO_ROOM}"]
+    handler = hass.services._handlers[f"plejd_cloud.{SERVICE_MOVE_DEVICE_TO_ROOM}"]
     await handler(types.SimpleNamespace(data={"device_id": "d1", "room_id": "r2"}))
 
     move_device_to_room.assert_awaited_once_with(hass, entry, device_id="d1", room_id="r2")
@@ -1079,36 +1081,36 @@ async def test_move_device_to_room_service_forwards_call_data(monkeypatch):
 
 
 async def test_create_schedule_service_is_registered_on_setup(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     await async_setup_entry(hass, entry)
-    assert f"plejd.{SERVICE_CREATE_SCHEDULE}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_CREATE_SCHEDULE}" in hass.services._handlers
 
 
 async def test_create_schedule_service_survives_entry_unload_cleanup(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     unloads: list = []
     entry.async_on_unload = unloads.append
     await async_setup_entry(hass, entry)
-    assert f"plejd.{SERVICE_CREATE_SCHEDULE}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_CREATE_SCHEDULE}" in hass.services._handlers
     for unload in unloads:
         await _run_unload(unload)
-    assert f"plejd.{SERVICE_CREATE_SCHEDULE}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_CREATE_SCHEDULE}" in hass.services._handlers
 
 
 async def test_create_schedule_service_forwards_call_data(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
 
     create_schedule = AsyncMock()
-    monkeypatch.setattr(plejd, "async_create_schedule", create_schedule)
+    monkeypatch.setattr(plejd_cloud, "async_create_schedule", create_schedule)
 
     await async_setup_entry(hass, entry)
-    handler = hass.services._handlers[f"plejd.{SERVICE_CREATE_SCHEDULE}"]
+    handler = hass.services._handlers[f"plejd_cloud.{SERVICE_CREATE_SCHEDULE}"]
     night_reduction = {"scene_steps": [_STEP], "start_time": "23:15", "end_time": "05:30"}
     call = types.SimpleNamespace(
         data={
@@ -1141,36 +1143,36 @@ async def test_create_schedule_service_forwards_call_data(monkeypatch):
 
 
 async def test_update_schedule_service_is_registered_on_setup(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     await async_setup_entry(hass, entry)
-    assert f"plejd.{SERVICE_UPDATE_SCHEDULE}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_UPDATE_SCHEDULE}" in hass.services._handlers
 
 
 async def test_update_schedule_service_survives_entry_unload_cleanup(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     unloads: list = []
     entry.async_on_unload = unloads.append
     await async_setup_entry(hass, entry)
-    assert f"plejd.{SERVICE_UPDATE_SCHEDULE}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_UPDATE_SCHEDULE}" in hass.services._handlers
     for unload in unloads:
         await _run_unload(unload)
-    assert f"plejd.{SERVICE_UPDATE_SCHEDULE}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_UPDATE_SCHEDULE}" in hass.services._handlers
 
 
 async def test_update_schedule_service_forwards_call_data(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
 
     update_schedule = AsyncMock()
-    monkeypatch.setattr(plejd, "async_update_schedule", update_schedule)
+    monkeypatch.setattr(plejd_cloud, "async_update_schedule", update_schedule)
 
     await async_setup_entry(hass, entry)
-    handler = hass.services._handlers[f"plejd.{SERVICE_UPDATE_SCHEDULE}"]
+    handler = hass.services._handlers[f"plejd_cloud.{SERVICE_UPDATE_SCHEDULE}"]
     call = types.SimpleNamespace(
         data={
             "schedule_id": "te1",
@@ -1206,15 +1208,15 @@ async def test_update_schedule_service_forwards_call_data(monkeypatch):
 
 
 async def test_update_schedule_service_forwards_defaults(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
 
     update_schedule = AsyncMock()
-    monkeypatch.setattr(plejd, "async_update_schedule", update_schedule)
+    monkeypatch.setattr(plejd_cloud, "async_update_schedule", update_schedule)
 
     await async_setup_entry(hass, entry)
-    handler = hass.services._handlers[f"plejd.{SERVICE_UPDATE_SCHEDULE}"]
+    handler = hass.services._handlers[f"plejd_cloud.{SERVICE_UPDATE_SCHEDULE}"]
     await handler(types.SimpleNamespace(data={"schedule_id": "te1"}))
 
     update_schedule.assert_awaited_once_with(
@@ -1235,36 +1237,36 @@ async def test_update_schedule_service_forwards_defaults(monkeypatch):
 
 
 async def test_remove_schedule_service_is_registered_on_setup(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     await async_setup_entry(hass, entry)
-    assert f"plejd.{SERVICE_REMOVE_SCHEDULE}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_REMOVE_SCHEDULE}" in hass.services._handlers
 
 
 async def test_remove_schedule_service_survives_entry_unload_cleanup(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     unloads: list = []
     entry.async_on_unload = unloads.append
     await async_setup_entry(hass, entry)
-    assert f"plejd.{SERVICE_REMOVE_SCHEDULE}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_REMOVE_SCHEDULE}" in hass.services._handlers
     for unload in unloads:
         await _run_unload(unload)
-    assert f"plejd.{SERVICE_REMOVE_SCHEDULE}" in hass.services._handlers
+    assert f"plejd_cloud.{SERVICE_REMOVE_SCHEDULE}" in hass.services._handlers
 
 
 async def test_remove_schedule_service_forwards_call_data(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
 
     remove_schedule = AsyncMock()
-    monkeypatch.setattr(plejd, "async_remove_schedule", remove_schedule)
+    monkeypatch.setattr(plejd_cloud, "async_remove_schedule", remove_schedule)
 
     await async_setup_entry(hass, entry)
-    handler = hass.services._handlers[f"plejd.{SERVICE_REMOVE_SCHEDULE}"]
+    handler = hass.services._handlers[f"plejd_cloud.{SERVICE_REMOVE_SCHEDULE}"]
     await handler(types.SimpleNamespace(data={"schedule_id": "te1"}))
 
     remove_schedule.assert_awaited_once_with(hass, entry, schedule_id="te1")
@@ -1274,28 +1276,28 @@ async def test_remove_schedule_service_forwards_call_data(monkeypatch):
 
 
 async def test_setup_registers_panel_by_default(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     calls = []
 
     async def _reg(hass):
         calls.append(hass)
 
-    monkeypatch.setattr(plejd.panel, "async_register_panel", _reg)
+    monkeypatch.setattr(plejd_cloud.panel, "async_register_panel", _reg)
     hass, entry = _hass(), _entry()
     await async_setup_entry(hass, entry)
     assert calls == [hass]  # dashboard registered by default
 
 
 async def test_setup_skips_panel_when_disabled(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     calls = []
 
     async def _reg(hass):
         calls.append(hass)
 
-    monkeypatch.setattr(plejd.panel, "async_register_panel", _reg)
+    monkeypatch.setattr(plejd_cloud.panel, "async_register_panel", _reg)
     hass, entry = _hass(), _entry()
     entry.options = {"show_panel": False}
     await async_setup_entry(hass, entry)
@@ -1303,11 +1305,11 @@ async def test_setup_skips_panel_when_disabled(monkeypatch):
 
 
 async def test_unload_removes_panel(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
-    monkeypatch.setattr(plejd.panel, "async_register_panel", _noop_async)
+    monkeypatch.setattr(plejd_cloud.panel, "async_register_panel", _noop_async)
     removed = []
-    monkeypatch.setattr(plejd.panel, "async_unregister_panel", lambda hass: removed.append(hass))
+    monkeypatch.setattr(plejd_cloud.panel, "async_unregister_panel", lambda hass: removed.append(hass))
     hass, entry = _hass(), _entry()
     unloads: list = []
     entry.async_on_unload = unloads.append
@@ -1322,13 +1324,13 @@ async def _noop_async(hass):
 
 
 async def test_setup_survives_panel_registration_failure(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
 
     async def _boom(hass):
         raise ValueError("panel url path already taken")
 
-    monkeypatch.setattr(plejd.panel, "async_register_panel", _boom)
+    monkeypatch.setattr(plejd_cloud.panel, "async_register_panel", _boom)
     hass, entry = _hass(), _entry()
     # A url-path clash must NOT abort setup — the mesh/lights still load.
     assert await async_setup_entry(hass, entry) is True
@@ -1339,9 +1341,9 @@ async def test_setup_survives_panel_registration_failure(monkeypatch):
 
 
 async def test_setup_loads_bindings_and_registers_ws(monkeypatch):
-    from plejd.dim_binding_ws import DATA_BINDINGS
+    from plejd_cloud.dim_binding_ws import DATA_BINDINGS
 
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     await async_setup_entry(hass, entry)
@@ -1350,9 +1352,9 @@ async def test_setup_loads_bindings_and_registers_ws(monkeypatch):
 
 
 async def test_unload_cleans_up_bindings(monkeypatch):
-    from plejd.dim_binding_ws import DATA_BINDINGS
+    from plejd_cloud.dim_binding_ws import DATA_BINDINGS
 
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     unloads: list = []
@@ -1368,9 +1370,9 @@ async def test_unload_cleans_up_bindings(monkeypatch):
 
 
 async def test_setup_stores_entry_and_registers_schedule_ws(monkeypatch):
-    from plejd.schedule_ws import DATA_ENTRY, ws_add, ws_delete, ws_list
+    from plejd_cloud.schedule_ws import DATA_ENTRY, ws_add, ws_delete, ws_list
 
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     await async_setup_entry(hass, entry)
@@ -1380,9 +1382,9 @@ async def test_setup_stores_entry_and_registers_schedule_ws(monkeypatch):
 
 
 async def test_unload_cleans_up_schedule_entry(monkeypatch):
-    from plejd.schedule_ws import DATA_ENTRY
+    from plejd_cloud.schedule_ws import DATA_ENTRY
 
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     unloads: list = []
@@ -1395,7 +1397,7 @@ async def test_unload_cleans_up_schedule_entry(monkeypatch):
 
 
 async def test_setup_survives_binding_load_failure(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
 
     class _BadBindings:
@@ -1408,7 +1410,7 @@ async def test_setup_survives_binding_load_failure(monkeypatch):
         def shutdown(self):
             return None
 
-    monkeypatch.setattr(plejd, "PlejdDimBindings", _BadBindings)
+    monkeypatch.setattr(plejd_cloud, "PlejdDimBindings", _BadBindings)
     hass, entry = _hass(), _entry()
     assert await async_setup_entry(hass, entry) is True  # storage error must not abort setup
 
@@ -1417,10 +1419,10 @@ async def test_setup_survives_binding_load_failure(monkeypatch):
 
 
 async def test_setup_registers_holiday_mode(monkeypatch):
-    from plejd.holiday_mode import DATA_HOLIDAY_MODE
+    from plejd_cloud.holiday_mode import DATA_HOLIDAY_MODE
 
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
-    monkeypatch.setattr(plejd, "PlejdHolidayMode", _FakeHolidayMode)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdHolidayMode", _FakeHolidayMode)
     _FakeCoordinator.instances.clear()
     _FakeHolidayMode.instances.clear()
     hass, entry = _hass(), _entry()
@@ -1429,10 +1431,10 @@ async def test_setup_registers_holiday_mode(monkeypatch):
 
 
 async def test_unload_stops_holiday_mode_before_unloading_platforms(monkeypatch):
-    from plejd.holiday_mode import DATA_HOLIDAY_MODE
+    from plejd_cloud.holiday_mode import DATA_HOLIDAY_MODE
 
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
-    monkeypatch.setattr(plejd, "PlejdHolidayMode", _FakeHolidayMode)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdHolidayMode", _FakeHolidayMode)
     _FakeCoordinator.instances.clear()
     _FakeHolidayMode.instances.clear()
     _FakeHolidayMode.call_order.clear()
@@ -1460,10 +1462,10 @@ async def test_unload_without_holiday_mode_registered_is_a_noop(monkeypatch):
 
 
 async def test_unload_failure_keeps_holiday_mode_registered_for_a_retry(monkeypatch):
-    from plejd.holiday_mode import DATA_HOLIDAY_MODE
+    from plejd_cloud.holiday_mode import DATA_HOLIDAY_MODE
 
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
-    monkeypatch.setattr(plejd, "PlejdHolidayMode", _FakeHolidayMode)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdHolidayMode", _FakeHolidayMode)
     _FakeCoordinator.instances.clear()
     _FakeHolidayMode.instances.clear()
     hass, entry = _hass(), _entry()
@@ -1483,10 +1485,10 @@ async def test_unload_failure_keeps_holiday_mode_registered_for_a_retry(monkeypa
 
 
 async def test_activity_log_is_stopped_only_by_a_successful_unload(monkeypatch):
-    from plejd import activity
+    from plejd_cloud import activity
 
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
-    monkeypatch.setattr(plejd, "PlejdHolidayMode", _FakeHolidayMode)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdHolidayMode", _FakeHolidayMode)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     unloads: list = []
@@ -1505,10 +1507,10 @@ async def test_activity_log_is_stopped_only_by_a_successful_unload(monkeypatch):
 
 
 async def test_a_failed_activity_save_on_unload_still_shuts_the_coordinator_down(monkeypatch):
-    from plejd import activity
+    from plejd_cloud import activity
 
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
-    monkeypatch.setattr(plejd, "PlejdHolidayMode", _FakeHolidayMode)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdHolidayMode", _FakeHolidayMode)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     await async_setup_entry(hass, entry)
@@ -1522,10 +1524,10 @@ async def test_a_failed_activity_save_on_unload_still_shuts_the_coordinator_down
 
 
 async def test_unload_failure_does_not_resume_holiday_mode_that_was_already_off(monkeypatch):
-    from plejd.holiday_mode import DATA_HOLIDAY_MODE
+    from plejd_cloud.holiday_mode import DATA_HOLIDAY_MODE
 
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
-    monkeypatch.setattr(plejd, "PlejdHolidayMode", _FakeHolidayMode)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdHolidayMode", _FakeHolidayMode)
     _FakeCoordinator.instances.clear()
     _FakeHolidayMode.instances.clear()
     hass, entry = _hass(), _entry()
@@ -1546,9 +1548,9 @@ async def test_unload_failure_does_not_resume_holiday_mode_that_was_already_off(
 
 
 async def test_setup_loads_remote_profiles_and_registers_ws(monkeypatch):
-    from plejd.remote_profile_ws import DATA_REMOTE_PROFILES
+    from plejd_cloud.remote_profile_ws import DATA_REMOTE_PROFILES
 
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     await async_setup_entry(hass, entry)
@@ -1557,9 +1559,9 @@ async def test_setup_loads_remote_profiles_and_registers_ws(monkeypatch):
 
 
 async def test_unload_cleans_up_remote_profiles(monkeypatch):
-    from plejd.remote_profile_ws import DATA_REMOTE_PROFILES
+    from plejd_cloud.remote_profile_ws import DATA_REMOTE_PROFILES
 
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
     hass, entry = _hass(), _entry()
     unloads: list = []
@@ -1572,7 +1574,7 @@ async def test_unload_cleans_up_remote_profiles(monkeypatch):
 
 
 async def test_setup_survives_remote_profile_load_failure(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
 
     class _BadProfiles:
@@ -1582,15 +1584,15 @@ async def test_setup_survives_remote_profile_load_failure(monkeypatch):
         async def async_load(self):
             raise ValueError("corrupt store")
 
-    monkeypatch.setattr(plejd, "PlejdRemoteProfiles", _BadProfiles)
+    monkeypatch.setattr(plejd_cloud, "PlejdRemoteProfiles", _BadProfiles)
     hass, entry = _hass(), _entry()
     assert await async_setup_entry(hass, entry) is True  # storage error must not abort setup
 
 
 async def test_setup_survives_activity_log_load_failure(monkeypatch):
-    from plejd import activity
+    from plejd_cloud import activity
 
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     _FakeCoordinator.instances.clear()
 
     async def _corrupt(self):
@@ -1603,15 +1605,17 @@ async def test_setup_survives_activity_log_load_failure(monkeypatch):
 
 
 async def test_remove_entry_keeps_cleaning_up_when_the_log_cannot_be_deleted(monkeypatch):
-    from plejd import activity
+    from plejd_cloud import activity
 
     async def _denied(hass, entry_id):
         raise PermissionError("read-only")
 
     monkeypatch.setattr(activity, "async_remove_store", _denied)
     cleared = []
-    monkeypatch.setattr(plejd, "async_clear_malformed_site_issue", lambda hass, entry_id: cleared.append(entry_id))
-    await plejd.async_remove_entry(_hass(), _entry())
+    monkeypatch.setattr(
+        plejd_cloud, "async_clear_malformed_site_issue", lambda hass, entry_id: cleared.append(entry_id)
+    )
+    await plejd_cloud.async_remove_entry(_hass(), _entry())
     assert cleared  # the rest of the removal cleanup still ran
 
 
@@ -1619,11 +1623,11 @@ async def test_remove_entry_clears_the_persistent_repair_issue():
     # The malformed-cloud issue is persistent, and its only other clear paths (a healthy
     # poll, a successful reconfigure) are unreachable once the entry is gone - so without
     # this the user keeps an orphaned warning about an integration they removed.
-    from plejd import async_remove_entry
-    from plejd.coordinator import DATA_LAST_SELF_HEAL
+    from plejd_cloud import async_remove_entry
+    from plejd_cloud.coordinator import DATA_LAST_SELF_HEAL
 
     hass, entry = _hass(), _entry()
-    hass.created_issues = {f"malformed_cloud_site_{entry.entry_id}": {"domain": "plejd"}}
+    hass.created_issues = {f"malformed_cloud_site_{entry.entry_id}": {"domain": "plejd_cloud"}}
     hass.data[DATA_LAST_SELF_HEAL] = {entry.entry_id: 1_000.0}
 
     await async_remove_entry(hass, entry)
@@ -1633,14 +1637,14 @@ async def test_remove_entry_clears_the_persistent_repair_issue():
 
 
 async def test_setup_syncs_areas_only_when_enabled(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     calls = []
 
     async def _sync(hass, entry):
         assert "area_registry_updated" in [e for e, _ in hass.bus.listeners]  # subscribed before syncing
         calls.append(entry.entry_id)
 
-    monkeypatch.setattr(plejd.area_sync, "async_sync_areas", _sync)
+    monkeypatch.setattr(plejd_cloud.area_sync, "async_sync_areas", _sync)
     hass, entry = _hass(), _entry()
     await async_setup_entry(hass, entry)
     assert calls == []
@@ -1653,40 +1657,40 @@ async def test_setup_syncs_areas_only_when_enabled(monkeypatch):
 
 
 async def test_setup_survives_area_sync_failure(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
 
     async def _boom(hass, entry):
         raise RuntimeError("registry unavailable")
 
-    monkeypatch.setattr(plejd.area_sync, "async_sync_areas", _boom)
+    monkeypatch.setattr(plejd_cloud.area_sync, "async_sync_areas", _boom)
     entry = _entry()
     entry.options = {"sync_areas": True}
     assert await async_setup_entry(_hass(), entry) is True
 
 
 async def test_remove_entry_deletes_the_area_sync_store():
-    from plejd import async_remove_entry
+    from plejd_cloud import async_remove_entry
 
     hass, entry = _hass(), _entry()
-    hass.data[("store", "plejd.area_sync.e1")] = {"DEV": {"room": "r1:Garage", "area": "garage"}}
+    hass.data[("store", "plejd_cloud.area_sync.e1")] = {"DEV": {"room": "r1:Garage", "area": "garage"}}
     await async_remove_entry(hass, entry)
-    assert ("store", "plejd.area_sync.e1") not in hass.data
+    assert ("store", "plejd_cloud.area_sync.e1") not in hass.data
 
 
 async def test_setup_with_area_sync_off_clears_its_state(monkeypatch):
     # Clearing on the reload that turns syncing off is what makes re-enabling align every device.
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
     hass, entry = _hass(), _entry()
-    hass.data[("store", "plejd.area_sync.e1")] = {"DEV": {"room": "r1:Garage", "area": "hall"}}
+    hass.data[("store", "plejd_cloud.area_sync.e1")] = {"DEV": {"room": "r1:Garage", "area": "hall"}}
     await async_setup_entry(hass, entry)
-    assert ("store", "plejd.area_sync.e1") not in hass.data
+    assert ("store", "plejd_cloud.area_sync.e1") not in hass.data
 
 
 async def test_setup_survives_area_sync_reset_failure(monkeypatch):
-    monkeypatch.setattr(plejd, "PlejdCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(plejd_cloud, "PlejdCoordinator", _FakeCoordinator)
 
     async def _boom(hass, entry):
         raise OSError("read-only storage")
 
-    monkeypatch.setattr(plejd.area_sync, "async_reset_areas", _boom)
+    monkeypatch.setattr(plejd_cloud.area_sync, "async_reset_areas", _boom)
     assert await async_setup_entry(_hass(), _entry()) is True

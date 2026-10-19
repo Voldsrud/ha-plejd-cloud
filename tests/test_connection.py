@@ -5,10 +5,10 @@ from __future__ import annotations
 import types
 
 import pytest
-from plejd import connection as conn
-from plejd import crypto
-from plejd.connection import PlejdConnection, reversed_mac
-from plejd.const import PLEJD_CHAR_AUTH_UUID, PLEJD_CHAR_DATA_UUID, PLEJD_CHAR_LAST_DATA_UUID
+from plejd_cloud import connection as conn
+from plejd_cloud import crypto
+from plejd_cloud.connection import PlejdConnection, reversed_mac
+from plejd_cloud.const import PLEJD_CHAR_AUTH_UUID, PLEJD_CHAR_DATA_UUID, PLEJD_CHAR_LAST_DATA_UUID
 
 _KEY = bytes.fromhex("00112233445566778899aabbccddeeff")
 _ADDR = "01:02:03:04:05:a0"
@@ -84,7 +84,7 @@ async def test_notify_updates_state_and_fires_callback(monkeypatch):
     fired = []
     c = PlejdConnection(_KEY, on_event=lambda cmd: fired.append(cmd))
     await c.connect(_device())
-    from plejd.protocol import set_output_state_and_level
+    from plejd_cloud.protocol import set_output_state_and_level
 
     vector = c.mesh.encrypt(set_output_state_and_level(5, 0, on=True, level=99))  # a real encrypted state vector
     client.notify_cb(None, bytearray(vector))

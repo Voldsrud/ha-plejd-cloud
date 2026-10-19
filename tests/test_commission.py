@@ -6,16 +6,16 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from bleak.backends.device import BLEDevice
-from plejd.cloud import NewDeviceAddresses, PlejdCloudSite
-from plejd.commission import _REPLACE_CMD_GAP, PlejdCommissioningSession, async_commission_device
-from plejd.const import (
+from plejd_cloud.cloud import NewDeviceAddresses, PlejdCloudSite
+from plejd_cloud.commission import _REPLACE_CMD_GAP, PlejdCommissioningSession, async_commission_device
+from plejd_cloud.const import (
     PLEJD_CHAR_ACCESS_ADDRESS_UUID,
     PLEJD_CHAR_CRYPTO_KEY_UUID,
     PLEJD_CHAR_DATA_UUID,
     PLEJD_CHAR_NODE_INDEX_UUID,
     PLEJD_CHAR_PING_UUID,
 )
-from plejd.crypto import dh_generate_shared_key, dh_shared_secret
+from plejd_cloud.crypto import dh_generate_shared_key, dh_shared_secret
 
 _KEY = bytes(range(16))
 _ADDR = "AA:BB:CC:DD:EE:FF"
@@ -53,7 +53,7 @@ def _site(mesh_key: str = "01-02-03-04") -> PlejdCloudSite:
 
 async def test_connect_sets_up_mesh(monkeypatch):
     client = _mock_client()
-    with patch("plejd.commission.establish_connection", return_value=client):
+    with patch("plejd_cloud.commission.establish_connection", return_value=client):
         session = PlejdCommissioningSession(_KEY)
         await session.connect(_device())
     assert session._client is client
@@ -65,7 +65,7 @@ async def test_set_crypto_key_reads_device_key_then_writes_ours_then_encrypted(m
     device_pk = bytes([0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88])
     client.read_gatt_char.return_value = device_pk
 
-    with patch("plejd.commission.establish_connection", return_value=client):
+    with patch("plejd_cloud.commission.establish_connection", return_value=client):
         session = PlejdCommissioningSession(_KEY)
         await session.connect(_device())
         result = await session.set_crypto_key()
@@ -92,9 +92,9 @@ async def test_set_crypto_key_encrypts_with_reference_shared_key_algorithm(monke
     client.read_gatt_char.return_value = device_pub_bytes
 
     fixed_private, fixed_public = 999, 0xAABBCCDDEEFF0011
-    monkeypatch.setattr("plejd.commission.dh_generate_keypair", lambda: (fixed_private, fixed_public))
+    monkeypatch.setattr("plejd_cloud.commission.dh_generate_keypair", lambda: (fixed_private, fixed_public))
 
-    with patch("plejd.commission.establish_connection", return_value=client):
+    with patch("plejd_cloud.commission.establish_connection", return_value=client):
         session = PlejdCommissioningSession(_KEY)
         await session.connect(_device())
         result = await session.set_crypto_key()
@@ -118,8 +118,8 @@ async def test_set_crypto_key_retries_on_zero_key():
     client.read_gatt_char.side_effect = [zero, zero, valid]
 
     with (
-        patch("plejd.commission.establish_connection", return_value=client),
-        patch("plejd.commission.asyncio.sleep"),
+        patch("plejd_cloud.commission.establish_connection", return_value=client),
+        patch("plejd_cloud.commission.asyncio.sleep"),
     ):
         session = PlejdCommissioningSession(_KEY)
         await session.connect(_device())
@@ -134,8 +134,8 @@ async def test_set_crypto_key_returns_false_after_max_retries():
     client.read_gatt_char.return_value = bytes(8)  # always all-zeros
 
     with (
-        patch("plejd.commission.establish_connection", return_value=client),
-        patch("plejd.commission.asyncio.sleep"),
+        patch("plejd_cloud.commission.establish_connection", return_value=client),
+        patch("plejd_cloud.commission.asyncio.sleep"),
     ):
         session = PlejdCommissioningSession(_KEY)
         await session.connect(_device())
@@ -155,7 +155,7 @@ async def test_verify_login_success_on_ping_plus_one():
     client = _mock_client()
     client.read_gatt_char.return_value = bytes([0x02])  # 0x01 + 1
 
-    with patch("plejd.commission.establish_connection", return_value=client):
+    with patch("plejd_cloud.commission.establish_connection", return_value=client):
         session = PlejdCommissioningSession(_KEY)
         await session.connect(_device())
         result = await session.verify_login()
@@ -169,7 +169,7 @@ async def test_verify_login_fails_on_wrong_response():
     client = _mock_client()
     client.read_gatt_char.return_value = bytes([0x05])  # not ping+1
 
-    with patch("plejd.commission.establish_connection", return_value=client):
+    with patch("plejd_cloud.commission.establish_connection", return_value=client):
         session = PlejdCommissioningSession(_KEY)
         await session.connect(_device())
         result = await session.verify_login()
@@ -181,7 +181,7 @@ async def test_verify_login_fails_on_empty_response():
     client = _mock_client()
     client.read_gatt_char.return_value = bytes()
 
-    with patch("plejd.commission.establish_connection", return_value=client):
+    with patch("plejd_cloud.commission.establish_connection", return_value=client):
         session = PlejdCommissioningSession(_KEY)
         await session.connect(_device())
         result = await session.verify_login()
@@ -198,7 +198,7 @@ async def test_verify_login_not_connected_raises():
 async def test_set_access_address_writes_correct_bytes():
     client = _mock_client()
 
-    with patch("plejd.commission.establish_connection", return_value=client):
+    with patch("plejd_cloud.commission.establish_connection", return_value=client):
         session = PlejdCommissioningSession(_KEY)
         await session.connect(_device())
         await session.set_access_address("AA-BB-CC-DD")
@@ -222,8 +222,8 @@ async def test_send_replace_last_mesh_command_writes_twice_with_gap():
         sleep_calls.append(t)
 
     with (
-        patch("plejd.commission.establish_connection", return_value=client),
-        patch("plejd.commission.asyncio.sleep", side_effect=_fake_sleep),
+        patch("plejd_cloud.commission.establish_connection", return_value=client),
+        patch("plejd_cloud.commission.asyncio.sleep", side_effect=_fake_sleep),
     ):
         session = PlejdCommissioningSession(_KEY)
         await session.connect(_device())
@@ -248,7 +248,7 @@ async def test_set_node_index_success_on_matching_read_back():
     client = _mock_client()
     client.read_gatt_char.return_value = bytes([5])
 
-    with patch("plejd.commission.establish_connection", return_value=client):
+    with patch("plejd_cloud.commission.establish_connection", return_value=client):
         session = PlejdCommissioningSession(_KEY)
         await session.connect(_device())
         result = await session.set_node_index(5)
@@ -263,7 +263,7 @@ async def test_set_node_index_retries_on_mismatch_then_succeeds():
     # First read returns wrong value, second returns correct.
     client.read_gatt_char.side_effect = [bytes([9]), bytes([5])]
 
-    with patch("plejd.commission.establish_connection", return_value=client):
+    with patch("plejd_cloud.commission.establish_connection", return_value=client):
         session = PlejdCommissioningSession(_KEY)
         await session.connect(_device())
         result = await session.set_node_index(5)
@@ -276,7 +276,7 @@ async def test_set_node_index_returns_false_after_max_retries():
     client = _mock_client()
     client.read_gatt_char.return_value = bytes([99])  # never matches
 
-    with patch("plejd.commission.establish_connection", return_value=client):
+    with patch("plejd_cloud.commission.establish_connection", return_value=client):
         session = PlejdCommissioningSession(_KEY)
         await session.connect(_device())
         result = await session.set_node_index(5)
@@ -294,7 +294,7 @@ async def test_set_node_index_not_connected_raises():
 async def test_disconnect_clears_client_and_mesh():
     client = _mock_client()
 
-    with patch("plejd.commission.establish_connection", return_value=client):
+    with patch("plejd_cloud.commission.establish_connection", return_value=client):
         session = PlejdCommissioningSession(_KEY)
         await session.connect(_device())
         await session.disconnect()
@@ -322,14 +322,14 @@ async def test_async_commission_device_full_flow(monkeypatch):
 
     addresses = NewDeviceAddresses(device_address=3, output_addresses={0: 30})
 
-    import plejd.commission as cm
+    import plejd_cloud.commission as cm
 
     monkeypatch.setattr(cm, "async_get_needed_output_count", AsyncMock(return_value=1))
 
     monkeypatch.setattr(cm, "async_create_device", AsyncMock(return_value=addresses))
     with (
-        patch("plejd.commission.establish_connection", return_value=client),
-        patch("plejd.commission.asyncio.sleep"),
+        patch("plejd_cloud.commission.establish_connection", return_value=client),
+        patch("plejd_cloud.commission.asyncio.sleep"),
     ):
         result = await async_commission_device(MagicMock(), "tok", _site(), _device(), "Kitchen Light")
 
@@ -353,14 +353,14 @@ async def test_async_commission_device_derives_device_id_from_mac(monkeypatch):
         captured.append({"device_id": device_id, "device_infos": device_infos})
         return addresses
 
-    import plejd.commission as cm
+    import plejd_cloud.commission as cm
 
     monkeypatch.setattr(cm, "async_get_needed_output_count", AsyncMock(return_value=1))
 
     monkeypatch.setattr(cm, "async_create_device", _fake_create)
     with (
-        patch("plejd.commission.establish_connection", return_value=client),
-        patch("plejd.commission.asyncio.sleep"),
+        patch("plejd_cloud.commission.establish_connection", return_value=client),
+        patch("plejd_cloud.commission.asyncio.sleep"),
     ):
         await async_commission_device(MagicMock(), "tok", _site(), _device("AA:BB:CC:DD:EE:FF"), "Lamp")
 
@@ -380,13 +380,13 @@ async def test_async_commission_device_builds_one_info_per_output(monkeypatch):
         captured.append(device_infos)
         return addresses
 
-    import plejd.commission as cm
+    import plejd_cloud.commission as cm
 
     monkeypatch.setattr(cm, "async_get_needed_output_count", AsyncMock(return_value=2))
     monkeypatch.setattr(cm, "async_create_device", _fake_create)
     with (
-        patch("plejd.commission.establish_connection", return_value=client),
-        patch("plejd.commission.asyncio.sleep"),
+        patch("plejd_cloud.commission.establish_connection", return_value=client),
+        patch("plejd_cloud.commission.asyncio.sleep"),
     ):
         await async_commission_device(MagicMock(), "tok", _site(), _device(), "Dimmer")
 
@@ -406,13 +406,13 @@ async def test_async_commission_device_builds_no_infos_for_zero_output_hardware(
         captured.append(device_infos)
         return addresses
 
-    import plejd.commission as cm
+    import plejd_cloud.commission as cm
 
     monkeypatch.setattr(cm, "async_get_needed_output_count", AsyncMock(return_value=0))
     monkeypatch.setattr(cm, "async_create_device", _fake_create)
     with (
-        patch("plejd.commission.establish_connection", return_value=client),
-        patch("plejd.commission.asyncio.sleep"),
+        patch("plejd_cloud.commission.establish_connection", return_value=client),
+        patch("plejd_cloud.commission.asyncio.sleep"),
     ):
         await async_commission_device(MagicMock(), "tok", _site(), _device(), "Switch")
 
@@ -433,14 +433,14 @@ async def test_async_commission_device_passes_room_id_and_hardware(monkeypatch):
         captured.append({"hw": hw, "fw": fw, "infos": device_infos})
         return addresses
 
-    import plejd.commission as cm
+    import plejd_cloud.commission as cm
 
     monkeypatch.setattr(cm, "async_get_needed_output_count", AsyncMock(return_value=1))
 
     monkeypatch.setattr(cm, "async_create_device", _fake_create)
     with (
-        patch("plejd.commission.establish_connection", return_value=client),
-        patch("plejd.commission.asyncio.sleep"),
+        patch("plejd_cloud.commission.establish_connection", return_value=client),
+        patch("plejd_cloud.commission.asyncio.sleep"),
     ):
         await async_commission_device(
             MagicMock(), "tok", _site(), _device(), "Hall", hardware_id="1", firmware_build_time=20241101, room_id="r1"
@@ -461,15 +461,15 @@ async def test_async_commission_device_creates_room_from_title(monkeypatch):
         captured.append(device_infos)
         return addresses
 
-    import plejd.commission as cm
+    import plejd_cloud.commission as cm
 
     monkeypatch.setattr(cm, "async_get_needed_output_count", AsyncMock(return_value=1))
     create_room = AsyncMock(return_value="room-uuid-1")
     monkeypatch.setattr(cm, "async_create_room", create_room)
     monkeypatch.setattr(cm, "async_create_device", _fake_create)
     with (
-        patch("plejd.commission.establish_connection", return_value=client),
-        patch("plejd.commission.asyncio.sleep"),
+        patch("plejd_cloud.commission.establish_connection", return_value=client),
+        patch("plejd_cloud.commission.asyncio.sleep"),
     ):
         await async_commission_device(MagicMock(), "tok", _site(), _device(), "Hall", room_title="Bibliotek")
 
@@ -487,15 +487,15 @@ async def test_async_commission_device_forwards_room_category(monkeypatch):
     async def _fake_create(session, token, site_id, device_id, hw, fw, device_infos=None, **kw):
         return addresses
 
-    import plejd.commission as cm
+    import plejd_cloud.commission as cm
 
     monkeypatch.setattr(cm, "async_get_needed_output_count", AsyncMock(return_value=1))
     create_room = AsyncMock(return_value="room-uuid-1")
     monkeypatch.setattr(cm, "async_create_room", create_room)
     monkeypatch.setattr(cm, "async_create_device", _fake_create)
     with (
-        patch("plejd.commission.establish_connection", return_value=client),
-        patch("plejd.commission.asyncio.sleep"),
+        patch("plejd_cloud.commission.establish_connection", return_value=client),
+        patch("plejd_cloud.commission.asyncio.sleep"),
     ):
         await async_commission_device(
             session, "tok", site, _device(), "Hall", room_title="Garage", room_category="Garage"
@@ -512,15 +512,15 @@ async def test_async_commission_device_omits_category_kwarg_when_not_supplied(mo
     async def _fake_create(session, token, site_id, device_id, hw, fw, device_infos=None, **kw):
         return addresses
 
-    import plejd.commission as cm
+    import plejd_cloud.commission as cm
 
     monkeypatch.setattr(cm, "async_get_needed_output_count", AsyncMock(return_value=1))
     create_room = AsyncMock(return_value="room-uuid-1")
     monkeypatch.setattr(cm, "async_create_room", create_room)
     monkeypatch.setattr(cm, "async_create_device", _fake_create)
     with (
-        patch("plejd.commission.establish_connection", return_value=client),
-        patch("plejd.commission.asyncio.sleep"),
+        patch("plejd_cloud.commission.establish_connection", return_value=client),
+        patch("plejd_cloud.commission.asyncio.sleep"),
     ):
         await async_commission_device(MagicMock(), "tok", _site(), _device(), "Hall", room_title="Bibliotek")
 
@@ -530,7 +530,7 @@ async def test_async_commission_device_omits_category_kwarg_when_not_supplied(mo
 
 
 async def test_async_commission_device_does_not_create_room_if_mesh_key_missing(monkeypatch):
-    import plejd.commission as cm
+    import plejd_cloud.commission as cm
 
     create_room = AsyncMock(return_value="room-uuid-1")
     monkeypatch.setattr(cm, "async_create_room", create_room)
@@ -543,7 +543,7 @@ async def test_async_commission_device_does_not_create_room_if_mesh_key_missing(
 async def test_async_commission_device_raises_if_cloud_returns_no_address(monkeypatch):
     addresses = NewDeviceAddresses(device_address=None, output_addresses={})
 
-    import plejd.commission as cm
+    import plejd_cloud.commission as cm
 
     monkeypatch.setattr(cm, "async_get_needed_output_count", AsyncMock(return_value=1))
 
@@ -555,7 +555,7 @@ async def test_async_commission_device_raises_if_cloud_returns_no_address(monkey
 async def test_async_commission_device_raises_if_site_has_no_mesh_key(monkeypatch):
     addresses = NewDeviceAddresses(device_address=5, output_addresses={})
 
-    import plejd.commission as cm
+    import plejd_cloud.commission as cm
 
     monkeypatch.setattr(cm, "async_get_needed_output_count", AsyncMock(return_value=1))
 
@@ -573,14 +573,14 @@ async def test_async_commission_device_raises_if_set_crypto_key_fails(monkeypatc
 
     addresses = NewDeviceAddresses(device_address=5, output_addresses={})
 
-    import plejd.commission as cm
+    import plejd_cloud.commission as cm
 
     monkeypatch.setattr(cm, "async_get_needed_output_count", AsyncMock(return_value=1))
 
     monkeypatch.setattr(cm, "async_create_device", AsyncMock(return_value=addresses))
     with (
-        patch("plejd.commission.establish_connection", return_value=client),
-        patch("plejd.commission.asyncio.sleep"),
+        patch("plejd_cloud.commission.establish_connection", return_value=client),
+        patch("plejd_cloud.commission.asyncio.sleep"),
         pytest.raises(RuntimeError, match="crypto key"),
     ):
         await async_commission_device(MagicMock(), "tok", _site(), _device(), "X")
@@ -595,14 +595,14 @@ async def test_async_commission_device_raises_if_verify_login_fails(monkeypatch)
 
     addresses = NewDeviceAddresses(device_address=5, output_addresses={})
 
-    import plejd.commission as cm
+    import plejd_cloud.commission as cm
 
     monkeypatch.setattr(cm, "async_get_needed_output_count", AsyncMock(return_value=1))
 
     monkeypatch.setattr(cm, "async_create_device", AsyncMock(return_value=addresses))
     with (
-        patch("plejd.commission.establish_connection", return_value=client),
-        patch("plejd.commission.asyncio.sleep"),
+        patch("plejd_cloud.commission.establish_connection", return_value=client),
+        patch("plejd_cloud.commission.asyncio.sleep"),
         pytest.raises(RuntimeError, match="rejected"),
     ):
         await async_commission_device(MagicMock(), "tok", _site(), _device(), "X")
@@ -620,14 +620,14 @@ async def test_async_commission_device_raises_if_set_node_index_fails(monkeypatc
 
     addresses = NewDeviceAddresses(device_address=5, output_addresses={})
 
-    import plejd.commission as cm
+    import plejd_cloud.commission as cm
 
     monkeypatch.setattr(cm, "async_get_needed_output_count", AsyncMock(return_value=1))
 
     monkeypatch.setattr(cm, "async_create_device", AsyncMock(return_value=addresses))
     with (
-        patch("plejd.commission.establish_connection", return_value=client),
-        patch("plejd.commission.asyncio.sleep"),
+        patch("plejd_cloud.commission.establish_connection", return_value=client),
+        patch("plejd_cloud.commission.asyncio.sleep"),
         pytest.raises(RuntimeError, match="node index"),
     ):
         await async_commission_device(MagicMock(), "tok", _site(), _device(), "X")
@@ -639,14 +639,14 @@ async def test_async_commission_device_disconnects_on_error(monkeypatch):
 
     addresses = NewDeviceAddresses(device_address=5, output_addresses={})
 
-    import plejd.commission as cm
+    import plejd_cloud.commission as cm
 
     monkeypatch.setattr(cm, "async_get_needed_output_count", AsyncMock(return_value=1))
 
     monkeypatch.setattr(cm, "async_create_device", AsyncMock(return_value=addresses))
     with (
-        patch("plejd.commission.establish_connection", return_value=client),
-        patch("plejd.commission.asyncio.sleep"),
+        patch("plejd_cloud.commission.establish_connection", return_value=client),
+        patch("plejd_cloud.commission.asyncio.sleep"),
         pytest.raises(RuntimeError, match="crypto key"),
     ):
         await async_commission_device(MagicMock(), "tok", _site(), _device(), "X")

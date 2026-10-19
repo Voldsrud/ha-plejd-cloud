@@ -8,8 +8,8 @@ from datetime import UTC, datetime
 
 import pytest
 from homeassistant.helpers import entity_registry as er
-from plejd import activity
-from plejd.schedule_ws import DATA_ENTRY
+from plejd_cloud import activity
+from plejd_cloud.schedule_ws import DATA_ENTRY
 
 
 class _Bus:
@@ -70,7 +70,7 @@ def _hass(origin=None, mesh_after=None):
     # mesh_after: {call time: origin} - what toggle_origin(since=...) finds after an HA call
     mesh_after = mesh_after or {}
 
-    def reg(uid, platform="plejd", **kw):
+    def reg(uid, platform="plejd_cloud", **kw):
         defaults = {"config_entry_id": "e1", "device_id": None, "area_id": None, "labels": set()}
         return types.SimpleNamespace(unique_id=uid, platform=platform, **{**defaults, **kw})
 
@@ -268,7 +268,7 @@ async def test_run_contexts_are_kept_for_a_day_and_bounded(monkeypatch):
 
 async def test_failed_load_never_overwrites_the_stored_log(monkeypatch):
     hass = _hass()
-    hass.data[("store", "plejd.activity.e1")] = {"entries": [{"kept": True}]}
+    hass.data[("store", "plejd_cloud.activity.e1")] = {"entries": [{"kept": True}]}
     log = activity.PlejdActivityLog(hass, hass.data[DATA_ENTRY])
 
     async def _fail():
@@ -281,7 +281,9 @@ async def test_failed_load_never_overwrites_the_stored_log(monkeypatch):
     hass.bus.listeners["state_changed"](_change(_state("light.kontor", "off"), _state("light.kontor", "on")))
     await log.async_stop()
     assert log.entries[-1]["state"] == "on"  # still logged in memory
-    assert hass.data[("store", "plejd.activity.e1")] == {"entries": [{"kept": True}]}  # but the store is untouched
+    assert hass.data[("store", "plejd_cloud.activity.e1")] == {
+        "entries": [{"kept": True}]
+    }  # but the store is untouched
 
 
 async def test_stop_removes_the_listeners_and_flushes_pending_entries():
@@ -400,7 +402,7 @@ async def test_room_command_targeted_by_device_area_or_label_is_credited():
 async def test_room_start_dim_from_ha_is_credited_either_way():
     hass = await _log_hass()
     for old, new in (("off", "on"), ("on", "off")):
-        _room_call(hass, _ctx(user_id="u1"), domain="plejd", service="start_dim", entity_id="light.room_kontor")
+        _room_call(hass, _ctx(user_id="u1"), domain="plejd_cloud", service="start_dim", entity_id="light.room_kontor")
         assert _member(hass, old, new) == {"kind": "user", "user_id": "u1"}
 
 
@@ -410,7 +412,7 @@ async def test_room_calls_that_are_not_credited():
     _room_call(hass, _ctx(user_id="u1"), entity_id=["light.kontor", "light.unregistered"])  # not a room
     _room_call(hass, _ctx(user_id="u1"), domain="switch", entity_id="light.room_kontor")  # not a light call
     _room_call(hass, _ctx(user_id="u1"), area_id="elsewhere")  # targets something else
-    _room_call(hass, _ctx(user_id="u1"), domain="plejd", service="stop_dim", entity_id="light.room_kontor")
+    _room_call(hass, _ctx(user_id="u1"), domain="plejd_cloud", service="stop_dim", entity_id="light.room_kontor")
     assert _member(hass, "off", "on") == {"kind": "external"}
     hass.entity_registry._entities.pop("light.room_kontor")  # room light not registered
     _room_call(hass, _ctx(user_id="u1"), device_id="dev_room")
@@ -433,12 +435,12 @@ async def test_all_off_service_is_credited_to_whoever_called_it():
     hass = await _log_hass()
     hass.bus.listeners["call_service"](
         types.SimpleNamespace(
-            context=_ctx(user_id="u1"), data={"domain": "plejd", "service": "all_off", "service_data": {}}
+            context=_ctx(user_id="u1"), data={"domain": "plejd_cloud", "service": "all_off", "service_data": {}}
         )
     )
     assert _member(hass, "on", "off") == {"kind": "user", "user_id": "u1"}
     hass.bus.listeners["call_service"](  # called from outside HA (no user or run): nothing to credit
-        types.SimpleNamespace(context=_ctx(), data={"domain": "plejd", "service": "all_off", "service_data": {}})
+        types.SimpleNamespace(context=_ctx(), data={"domain": "plejd_cloud", "service": "all_off", "service_data": {}})
     )
     assert _member(hass, "on", "off") == {"kind": "external"}
 
@@ -457,7 +459,7 @@ async def test_all_off_credits_only_light_outputs():
     hass = await _log_hass()
     hass.bus.listeners["call_service"](
         types.SimpleNamespace(
-            context=_ctx(user_id="u1"), data={"domain": "plejd", "service": "all_off", "service_data": {}}
+            context=_ctx(user_id="u1"), data={"domain": "plejd_cloud", "service": "all_off", "service_data": {}}
         )
     )
     assert set(hass.data[activity.DATA_ACTIVITY]._room_commands) == {42}  # not the relay (43)
@@ -816,7 +818,7 @@ async def test_night_watch_names_the_ha_user():
 async def test_night_watch_ignores_plejd_relays():
     hass, tasks = await _alert_hass()
     hass.entity_registry._entities["switch.pump"] = types.SimpleNamespace(
-        unique_id="d3", platform="plejd", config_entry_id="e1", device_id=None, area_id=None, labels=set()
+        unique_id="d3", platform="plejd_cloud", config_entry_id="e1", device_id=None, area_id=None, labels=set()
     )
     night = datetime(2026, 10, 11, 0, 13, tzinfo=UTC)
     hass.bus.listeners["state_changed"](_change(_state("switch.pump", "off"), _state("switch.pump", "on", when=night)))
@@ -832,7 +834,12 @@ async def test_a_switched_off_schedule_is_not_credited():
         "schedules": [{"id": 7, "name": "Workday", "days": [0], "time": "07:30", "scene": 3}]
     }
     hass.entity_registry._entities["switch.schedule_workday"] = types.SimpleNamespace(
-        unique_id="S1_schedule_7", platform="plejd", config_entry_id="e1", device_id=None, area_id=None, labels=set()
+        unique_id="S1_schedule_7",
+        platform="plejd_cloud",
+        config_entry_id="e1",
+        device_id=None,
+        area_id=None,
+        labels=set(),
     )
     fire = hass.bus.listeners["state_changed"]
     fire(_change(_state("light.kontor", "off"), _state("light.kontor", "on", when=when)))
@@ -843,7 +850,7 @@ async def test_a_switched_off_schedule_is_not_credited():
 
 async def test_entries_older_than_30_days_are_dropped_on_load():
     hass = _hass()
-    hass.data[("store", "plejd.activity.e1")] = {
+    hass.data[("store", "plejd_cloud.activity.e1")] = {
         "entries": [
             {
                 "t": "2026-04-01T00:00:00+00:00",
@@ -865,7 +872,7 @@ async def test_entries_older_than_30_days_are_dropped_on_load():
     }
     log = await _log(hass)  # "now" in the test stub is 2026-05-31
     assert [e["state"] for e in log.entries] == ["off"]
-    assert [e["state"] for e in hass.data[("store", "plejd.activity.e1")]["entries"]] == ["off"]  # and saved
+    assert [e["state"] for e in hass.data[("store", "plejd_cloud.activity.e1")]["entries"]] == ["off"]  # and saved
 
 
 async def test_a_plejd_scene_run_from_ha_is_credited_to_its_caller(monkeypatch):

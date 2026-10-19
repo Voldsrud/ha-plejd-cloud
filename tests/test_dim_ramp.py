@@ -5,8 +5,8 @@ from __future__ import annotations
 import asyncio
 import types
 
-from plejd.dim_ramp import DIM_MAX, DIM_MIN, PlejdDimRamp
-from plejd.protocol import OutputState
+from plejd_cloud.dim_ramp import DIM_MAX, DIM_MIN, PlejdDimRamp
+from plejd_cloud.protocol import OutputState
 
 
 class _FakeCoord:

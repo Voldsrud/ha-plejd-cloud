@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import types
 
-from plejd.cloud import PlejdCloudDevice, PlejdCloudMotion
-from plejd.coordinator import PlejdFirmwareStatus
-from plejd.update import UPDATE_WARNING, PlejdFirmwareUpdate, async_setup_entry
+from plejd_cloud.cloud import PlejdCloudDevice, PlejdCloudMotion
+from plejd_cloud.coordinator import PlejdFirmwareStatus
+from plejd_cloud.update import UPDATE_WARNING, PlejdFirmwareUpdate, async_setup_entry
 
 
 def _device(device_id="d1", output_index=0):

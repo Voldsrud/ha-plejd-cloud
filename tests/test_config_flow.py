@@ -7,8 +7,8 @@ import types
 import pytest
 from aiohttp import ClientError
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
-from plejd import config_flow as cf
-from plejd.cloud import (
+from plejd_cloud import config_flow as cf
+from plejd_cloud.cloud import (
     PlejdAuthError,
     PlejdCloudDevice,
     PlejdCloudError,
@@ -17,8 +17,8 @@ from plejd.cloud import (
     PlejdCloudScene,
     PlejdCloudSite,
 )
-from plejd.config_flow import PlejdConfigFlow
-from plejd.const import (
+from plejd_cloud.config_flow import PlejdConfigFlow
+from plejd_cloud.const import (
     CONF_CRYPTO_KEY,
     CONF_DEVICE_ADDRESSES,
     CONF_DEVICES,
@@ -375,7 +375,7 @@ async def test_reconfigure_clears_the_malformed_cloud_repair_issue(monkeypatch):
     entry = _stored_entry()
     _patch_cloud(monkeypatch, login="tok", site=_site())
     flow = _reconfigure_flow(entry)
-    flow.hass.created_issues = {"malformed_cloud_site_e1": {"domain": "plejd"}}
+    flow.hass.created_issues = {"malformed_cloud_site_e1": {"domain": "plejd_cloud"}}
     res = await flow.async_step_reconfigure({})
     assert res["reason"] == "reconfigure_successful"
     assert "malformed_cloud_site_e1" not in flow.hass.created_issues
@@ -385,7 +385,7 @@ async def test_reauth_success_releases_the_self_heal_cooldown(monkeypatch):
     # The cooldown is deliberately held through an auth failure, so the setup retry that
     # follows a successful reauth would otherwise wait it out - at the exact moment it could
     # finally fetch the crypto key/gateway data that reauth itself does not touch.
-    from plejd.coordinator import DATA_LAST_SELF_HEAL
+    from plejd_cloud.coordinator import DATA_LAST_SELF_HEAL
 
     entry = _stored_entry()
     _patch_cloud(monkeypatch, login="tok")

@@ -5,7 +5,7 @@ from __future__ import annotations
 import types
 
 from homeassistant.const import EntityCategory
-from plejd.button import PlejdAllOffButton, PlejdSyncClockButton, async_setup_entry
+from plejd_cloud.button import PlejdAllOffButton, PlejdSyncClockButton, async_setup_entry
 
 
 class _Coordinator:
@@ -44,7 +44,7 @@ async def test_all_off_button_unique_id_and_device():
     coord = _Coordinator()
     button = PlejdAllOffButton(coord)
     assert button._attr_unique_id == "site-1_all_off"
-    assert button._attr_device_info["identifiers"] == {("plejd", "site-1")}
+    assert button._attr_device_info["identifiers"] == {("plejd_cloud", "site-1")}
 
 
 async def test_all_off_button_press_turns_off_every_light():

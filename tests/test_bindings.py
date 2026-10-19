@@ -7,8 +7,8 @@ import types
 
 import pytest
 from homeassistant.helpers import entity_registry as er
-from plejd import bindings as bindings_mod
-from plejd.bindings import DimRamp, PlejdDimBindings
+from plejd_cloud import bindings as bindings_mod
+from plejd_cloud.bindings import DimRamp, PlejdDimBindings
 
 
 async def _raise_disk_full(_data):
@@ -372,7 +372,7 @@ async def test_concurrent_replaces_leave_consistent_triggers(monkeypatch):
 async def test_plejd_single_light_target_uses_native_dim(monkeypatch):
     captured = []
     monkeypatch.setattr(bindings_mod, "async_initialize_triggers", _spy_triggers(captured))
-    hass = _hass_with_entities({"light.kok": "plejd"})
+    hass = _hass_with_entities({"light.kok": "plejd_cloud"})
     hass.data[("store", bindings_mod.STORE_KEY)] = [
         {"id": "b1", "targets": {"entity_id": ["light.kok"]}, "up": {"a": 1}, "down": {"b": 1}, "stop": {"c": 1}},
     ]
@@ -383,8 +383,8 @@ async def test_plejd_single_light_target_uses_native_dim(monkeypatch):
     await captured[2][1]()  # stop
     # a lone Plejd light rides its native ramp (start_dim/stop_dim → active transport), not the generic ramp
     assert hass.services.calls == [
-        ("plejd", "start_dim", {"entity_id": ["light.kok"], "direction": "up"}),
-        ("plejd", "stop_dim", {"entity_id": ["light.kok"]}),
+        ("plejd_cloud", "start_dim", {"entity_id": ["light.kok"], "direction": "up"}),
+        ("plejd_cloud", "stop_dim", {"entity_id": ["light.kok"]}),
     ]
     assert pb._ramp.calls == []
 
@@ -392,14 +392,14 @@ async def test_plejd_single_light_target_uses_native_dim(monkeypatch):
 async def test_plejd_light_target_as_string_uses_native_dim(monkeypatch):
     captured = []
     monkeypatch.setattr(bindings_mod, "async_initialize_triggers", _spy_triggers(captured))
-    hass = _hass_with_entities({"light.kok": "plejd"})
+    hass = _hass_with_entities({"light.kok": "plejd_cloud"})
     hass.data[("store", bindings_mod.STORE_KEY)] = [
         {"id": "b1", "targets": {"entity_id": "light.kok"}, "up": {"a": 1}, "stop": {"c": 1}},  # stored as a string
     ]
     pb = PlejdDimBindings(hass)
     await pb.async_load()
     await captured[0][1]()
-    assert hass.services.calls == [("plejd", "start_dim", {"entity_id": ["light.kok"], "direction": "up"})]
+    assert hass.services.calls == [("plejd_cloud", "start_dim", {"entity_id": ["light.kok"], "direction": "up"})]
 
 
 async def test_non_plejd_light_target_uses_generic_ramp(monkeypatch):
@@ -434,7 +434,7 @@ async def test_area_target_uses_generic_ramp(monkeypatch):
 async def test_non_light_plejd_entity_uses_generic_ramp(monkeypatch):
     captured = []
     monkeypatch.setattr(bindings_mod, "async_initialize_triggers", _spy_triggers(captured))
-    hass = _hass_with_entities({"switch.plejd_relay": "plejd"})
+    hass = _hass_with_entities({"switch.plejd_relay": "plejd_cloud"})
     hass.data[("store", bindings_mod.STORE_KEY)] = [
         {"id": "b1", "targets": {"entity_id": ["switch.plejd_relay"]}, "up": {"a": 1}, "stop": {"c": 1}},
     ]
@@ -471,7 +471,7 @@ async def test_replace_survives_malformed_previous_binding(monkeypatch):
 
 async def test_replace_stops_native_plejd_ramp_of_removed_binding(monkeypatch):
     monkeypatch.setattr(bindings_mod, "async_initialize_triggers", _spy_triggers([]))
-    hass = _hass_with_entities({"light.kok": "plejd"})
+    hass = _hass_with_entities({"light.kok": "plejd_cloud"})
     hass.data[("store", bindings_mod.STORE_KEY)] = [
         {"id": "b1", "targets": {"entity_id": ["light.kok"]}, "up": {"a": 1}, "stop": {"c": 1}},
     ]
@@ -479,7 +479,7 @@ async def test_replace_stops_native_plejd_ramp_of_removed_binding(monkeypatch):
     await pb.async_load()
     hass.services.calls.clear()
     await pb.async_replace([])  # remove the binding while its native ramp could be running
-    assert ("plejd", "stop_dim", {"entity_id": ["light.kok"]}) in hass.services.calls
+    assert ("plejd_cloud", "stop_dim", {"entity_id": ["light.kok"]}) in hass.services.calls
 
 
 async def test_binding_with_start_but_no_stop_is_rejected(monkeypatch):

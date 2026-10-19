@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import types
 
-from plejd.const import PLEJD_SERVICE_UUID
-from plejd.discovery import _parse_plejd_mfr_data, async_scan_unprovisioned
+from plejd_cloud.const import PLEJD_SERVICE_UUID
+from plejd_cloud.discovery import _parse_plejd_mfr_data, async_scan_unprovisioned
 
 
 def _fake_service_info(address, mfr_data, service_uuids=None, rssi=-70, name=None):

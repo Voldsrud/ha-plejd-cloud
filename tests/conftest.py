@@ -2,7 +2,7 @@
 
 If `homeassistant` is installed it is used as-is. Otherwise (the lean uv CI env) we
 inject the minimal set of HA symbols the skeleton imports, then expose the integration
-as the top-level `plejd` package so tests can `from plejd... import ...`.
+as the top-level `plejd_cloud` package so tests can `from plejd_cloud... import ...`.
 """
 
 from __future__ import annotations
@@ -275,6 +275,10 @@ except ImportError:
         OFF = "off"
         HEAT = "heat"
 
+    class _HVACAction(str, enum.Enum):
+        HEATING = "heating"
+        IDLE = "idle"
+
     class _ClimateEntityFeature(enum.IntFlag):
         TARGET_TEMPERATURE = 1
         PRESET_MODE = 16
@@ -287,6 +291,7 @@ except ImportError:
             return None
 
     _climate.HVACMode = _HVACMode  # type: ignore[attr-defined]
+    _climate.HVACAction = _HVACAction  # type: ignore[attr-defined]
     _climate.ClimateEntityFeature = _ClimateEntityFeature  # type: ignore[attr-defined]
     _climate.ClimateEntity = _ClimateEntity  # type: ignore[attr-defined]
     sys.modules.setdefault("homeassistant.components.climate", _climate)

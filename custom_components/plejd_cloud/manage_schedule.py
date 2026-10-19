@@ -47,7 +47,6 @@ from .cloud import async_update_time_event as async_cloud_update_time_event
 from .const import (
     CONF_CLOUD_SCHEDULES,
     CONF_SITE_ID,
-    DOMAIN,
     SCHEDULE_ASTRO_EVENTS,
     SCHEDULE_OFFSET_MAX,
     SCHEDULE_OFFSET_MIN,
@@ -401,7 +400,8 @@ async def async_create_schedule(
         # tracked, and a later refresh failure must not also swallow the only way the user
         # can learn its id (this integration can't rediscover it from getSiteById).
         await _sync_cloud_schedules_cache(hass, entry, cloud_schedules)
-        hass.bus.async_fire(f"{DOMAIN}_schedule_created", {"schedule_id": schedule_id})
+        # Public bus event name kept from upstream (not domain-derived).
+        hass.bus.async_fire("plejd_schedule_created", {"schedule_id": schedule_id})
         await _async_refresh_and_reload(
             hass, entry, http_session, token, cloud_schedules=cloud_schedules, mutation="create"
         )

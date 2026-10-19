@@ -99,5 +99,5 @@ def parse_mesh_state_report(report: dict) -> dict[int, OutputState]:
             continue
         # Untrusted: clamp to the documented uint16 so brightness can't exceed 255.
         level = min(int(parts[1]), 0xFFFF)
-        states[address] = OutputState(output=address, on=parts[0] == "1", level=level >> 8)
+        states[address] = OutputState(output=address, on=parts[0] == "1", level=level >> 8, raw_level=level)
     return states

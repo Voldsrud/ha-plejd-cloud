@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import types
 
-from plejd.cloud import PlejdCloudInput
-from plejd.event import EVENT_PRESS, EVENT_RELEASE, PlejdButtonEvent, async_setup_entry
+from plejd_cloud.cloud import PlejdCloudInput
+from plejd_cloud.event import EVENT_PRESS, EVENT_RELEASE, PlejdButtonEvent, async_setup_entry
 
 
 class _Coordinator:

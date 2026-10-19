@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from plejd.const import (
+from plejd_cloud.const import (
     CONF_DISCOVERED_ADDRESS,
     DOMAIN,
     PLEJD_CHAR_DATA_UUID,
@@ -11,7 +11,7 @@ from plejd.const import (
 
 
 def test_domain_is_plejd():
-    assert DOMAIN == "plejd"
+    assert DOMAIN == "plejd_cloud"
 
 
 def test_conf_discovered_address_key():

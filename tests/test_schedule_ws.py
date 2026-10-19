@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 from homeassistant.exceptions import HomeAssistantError
-from plejd import schedule_ws
-from plejd.schedule_ws import DATA_ENTRY, DATA_RELOAD_PENDING
+from plejd_cloud import schedule_ws
+from plejd_cloud.schedule_ws import DATA_ENTRY, DATA_RELOAD_PENDING
 
 
 class _Conn:

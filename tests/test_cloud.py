@@ -5,7 +5,7 @@ from __future__ import annotations
 import aiohttp
 import pytest
 from aioresponses import aioresponses
-from plejd.cloud import (
+from plejd_cloud.cloud import (
     NewDeviceInfo,
     PlejdAuthError,
     PlejdCloudError,
@@ -30,7 +30,7 @@ from plejd.cloud import (
     async_update_time_event,
     parse_site,
 )
-from plejd.const import (
+from plejd_cloud.const import (
     PLEJD_FN_COMPATIBLE_DEVICES,
     PLEJD_FN_CREATE_DEVICE,
     PLEJD_FN_CREATE_ROOM,

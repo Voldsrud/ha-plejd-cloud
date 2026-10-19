@@ -5,9 +5,9 @@ from __future__ import annotations
 import types
 
 from homeassistant.components.light import ATTR_BRIGHTNESS, ColorMode
-from plejd.cloud import PlejdCloudDevice, PlejdCloudRoom
-from plejd.light import PlejdLight, PlejdRoomLight, async_setup_entry
-from plejd.protocol import OutputState
+from plejd_cloud.cloud import PlejdCloudDevice, PlejdCloudRoom
+from plejd_cloud.light import PlejdLight, PlejdRoomLight, async_setup_entry
+from plejd_cloud.protocol import OutputState
 
 
 def _device(category="light", dimmable=True, address=5):
@@ -162,7 +162,7 @@ async def test_added_to_hass_subscribes():
 
 
 async def test_setup_entry_registers_dim_entity_services(monkeypatch):
-    import plejd.light as light_mod
+    import plejd_cloud.light as light_mod
 
     registered = []
 

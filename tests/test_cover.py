@@ -5,8 +5,8 @@ from __future__ import annotations
 import types
 
 from homeassistant.components.cover import ATTR_POSITION, CoverEntityFeature
-from plejd.cloud import PlejdCloudDevice
-from plejd.cover import PlejdCover, async_setup_entry
+from plejd_cloud.cloud import PlejdCloudDevice
+from plejd_cloud.cover import PlejdCover, async_setup_entry
 
 
 def _device(category="cover", address=7):

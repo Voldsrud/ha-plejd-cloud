@@ -9,9 +9,9 @@ from datetime import datetime, time, timedelta, timezone
 
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
-from plejd import holiday_mode as hm
-from plejd.const import CONF_HOLIDAY_LIGHTS, CONF_HOLIDAY_WINDOW_END, CONF_HOLIDAY_WINDOW_START
-from plejd.holiday_mode import STORE_KEY, PlejdHolidayMode, _in_window, _parse_hhmm
+from plejd_cloud import holiday_mode as hm
+from plejd_cloud.const import CONF_HOLIDAY_LIGHTS, CONF_HOLIDAY_WINDOW_END, CONF_HOLIDAY_WINDOW_START
+from plejd_cloud.holiday_mode import STORE_KEY, PlejdHolidayMode, _in_window, _parse_hhmm
 
 
 class _FakeRandom:

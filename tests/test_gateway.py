@@ -6,9 +6,9 @@ import base64
 import json
 
 import pytest
-from plejd import gateway
-from plejd.const import CMD_OUTPUT_STATE_AND_LEVEL
-from plejd.protocol import decode_command, encode_command, set_output_state_and_level
+from plejd_cloud import gateway
+from plejd_cloud.const import CMD_OUTPUT_STATE_AND_LEVEL
+from plejd_cloud.protocol import decode_command, encode_command, set_output_state_and_level
 
 
 def test_repackage_command_to_ws_layout():

@@ -5,9 +5,9 @@ from __future__ import annotations
 import types
 
 import pytest
-from plejd import diagnostics
-from plejd.cloud import PlejdAuthError, PlejdCloudDevice
-from plejd.diagnostics import async_get_config_entry_diagnostics, site_shape
+from plejd_cloud import diagnostics
+from plejd_cloud.cloud import PlejdAuthError, PlejdCloudDevice
+from plejd_cloud.diagnostics import async_get_config_entry_diagnostics, site_shape
 
 SITE = {
     "site": {"title": "Hemma", "siteId": "guid"},

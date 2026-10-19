@@ -9,9 +9,9 @@ from collections import deque
 
 import aiohttp
 import pytest
-from plejd import gateway
-from plejd.gateway_transport import PlejdGatewayConnection
-from plejd.protocol import OutputState, set_output_state_and_level
+from plejd_cloud import gateway
+from plejd_cloud.gateway_transport import PlejdGatewayConnection
+from plejd_cloud.protocol import OutputState, set_output_state_and_level
 
 
 def _text(obj: dict):
@@ -82,7 +82,7 @@ def _sent_publishes(ws, topic):
 
 
 def test_set_state_records_output_state():
-    from plejd.protocol import OutputState
+    from plejd_cloud.protocol import OutputState
 
     conn = PlejdGatewayConnection(object(), "S1", "rs1", "inst-1", None, lambda: None)
     assert conn.state_for(11) is None
@@ -154,7 +154,7 @@ async def test_write_publishes_command_with_ack_and_awaits_echo():
 
 
 async def test_write_returns_when_ack_times_out(monkeypatch):
-    from plejd import gateway_transport as gt
+    from plejd_cloud import gateway_transport as gt
 
     monkeypatch.setattr(gt, "GATEWAY_PUBLISH_ACK_TIMEOUT", 0.01)
     ws = _FakeWS()
@@ -274,7 +274,7 @@ def test_set_state_records_locally():
 
 
 def test_handle_push_ignores_non_output_command():
-    from plejd.protocol import encode_command
+    from plejd_cloud.protocol import encode_command
 
     fired = []
     conn = _conn(_FakeWS(), on_state=lambda: fired.append(1))
@@ -284,8 +284,8 @@ def test_handle_push_ignores_non_output_command():
 
 
 def test_handle_push_forwards_every_decoded_command_to_on_event():
-    from plejd.const import CMD_NOTIFY_EVENTS
-    from plejd.protocol import encode_command
+    from plejd_cloud.const import CMD_NOTIFY_EVENTS
+    from plejd_cloud.protocol import encode_command
 
     events = []
     conn = _conn(_FakeWS(), on_event=lambda command: events.append(command))
@@ -297,8 +297,8 @@ def test_handle_push_forwards_every_decoded_command_to_on_event():
 
 
 def test_handle_push_without_on_event_does_not_crash():
-    from plejd.const import CMD_NOTIFY_EVENTS
-    from plejd.protocol import encode_command
+    from plejd_cloud.const import CMD_NOTIFY_EVENTS
+    from plejd_cloud.protocol import encode_command
 
     conn = _conn(_FakeWS())  # on_event defaults to None
     conn._handle_frame(json.dumps(_push_frame(10, encode_command(10, CMD_NOTIFY_EVENTS, bytes([1])))))
@@ -317,7 +317,7 @@ def test_handle_push_routes_state_command_to_on_event_instead_of_on_state():
 
 
 def test_handle_push_routes_non_output_command_to_on_event():
-    from plejd.protocol import encode_command
+    from plejd_cloud.protocol import encode_command
 
     events = []
     conn = _conn(_FakeWS(), on_event=lambda cmd: events.append(cmd))
@@ -353,7 +353,7 @@ def _ping_sent(ws) -> bool:
 
 
 async def test_ping_loop_survives_on_pong(monkeypatch):
-    from plejd import gateway_transport as gt
+    from plejd_cloud import gateway_transport as gt
 
     ws = _FakeWS()
     conn = _conn(ws)
@@ -370,7 +370,7 @@ async def test_ping_loop_survives_on_pong(monkeypatch):
 
 
 async def test_ping_loop_closes_on_missed_pong(monkeypatch):
-    from plejd import gateway_transport as gt
+    from plejd_cloud import gateway_transport as gt
 
     ws = _FakeWS()
     conn = _conn(ws)
@@ -385,7 +385,7 @@ async def test_ping_loop_closes_on_missed_pong(monkeypatch):
 
 
 async def test_ping_loop_does_not_close_reconnected_socket(monkeypatch):
-    from plejd import gateway_transport as gt
+    from plejd_cloud import gateway_transport as gt
 
     old, new = _FakeWS(), _FakeWS()
     conn = _conn(old)
@@ -407,7 +407,7 @@ async def test_ping_loop_does_not_close_reconnected_socket(monkeypatch):
 
 
 async def test_ping_loop_stops_when_disconnected(monkeypatch):
-    from plejd import gateway_transport as gt
+    from plejd_cloud import gateway_transport as gt
 
     ws = _FakeWS()
     ws.closed = True  # socket already gone
@@ -459,7 +459,7 @@ async def test_receive_loop_signals_disconnect_on_unexpected_error():
 
 
 async def test_ping_loop_treats_send_failure_as_missed_pong(monkeypatch):
-    from plejd import gateway_transport as gt
+    from plejd_cloud import gateway_transport as gt
 
     ws = _FakeWS()
     conn = _conn(ws)

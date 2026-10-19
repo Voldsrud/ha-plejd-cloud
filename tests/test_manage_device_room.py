@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.exceptions import HomeAssistantError
-from plejd.cloud import (
+from plejd_cloud.cloud import (
     PlejdAuthError,
     PlejdCloudDevice,
     PlejdCloudError,
@@ -16,8 +16,8 @@ from plejd.cloud import (
     PlejdCloudRoomInfo,
     PlejdCloudSite,
 )
-from plejd.const import CONF_PENDING_ROOM_MOVES
-from plejd.manage_device_room import DATA_PENDING_ROOM_MOVES, _async_persist_pending, async_move_device_to_room
+from plejd_cloud.const import CONF_PENDING_ROOM_MOVES
+from plejd_cloud.manage_device_room import DATA_PENDING_ROOM_MOVES, _async_persist_pending, async_move_device_to_room
 
 _KEY = bytes(range(16))
 
@@ -90,20 +90,22 @@ def _entry(data=None, runtime_data=None):
 
 
 async def test_move_device_raises_if_device_not_found(monkeypatch):
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(return_value=_site()))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(return_value=_site()))
     with pytest.raises(HomeAssistantError, match="not found"):
         await async_move_device_to_room(_hass(), _entry(), device_id="missing", room_id="r2")
 
 
 async def test_move_device_raises_on_login_failure(monkeypatch):
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(side_effect=PlejdCloudError("down")))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(side_effect=PlejdCloudError("down")))
     with pytest.raises(HomeAssistantError, match="Plejd cloud error"):
         await async_move_device_to_room(_hass(), _entry(), device_id="d1", room_id="r2")
 
 
 async def test_move_device_triggers_reauth_on_stale_credentials(monkeypatch):
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(side_effect=PlejdAuthError("bad creds")))
+    monkeypatch.setattr(
+        "plejd_cloud.manage_device_room.async_login", AsyncMock(side_effect=PlejdAuthError("bad creds"))
+    )
     hass = _hass()
     entry = _entry()
     entry.async_start_reauth = MagicMock()
@@ -113,8 +115,8 @@ async def test_move_device_triggers_reauth_on_stale_credentials(monkeypatch):
 
 
 async def test_move_device_raises_on_get_site_failure(monkeypatch):
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=PlejdCloudError("down")))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=PlejdCloudError("down")))
     with pytest.raises(HomeAssistantError, match="Plejd cloud error"):
         await async_move_device_to_room(_hass(), _entry(), device_id="d1", room_id="r2")
 
@@ -125,8 +127,8 @@ async def test_move_device_raises_for_a_multi_output_device(monkeypatch):
         device_addresses={"d1": 39},
         all_rooms=[_room("r2", "Room B", address=34)],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(return_value=site))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(return_value=site))
     with pytest.raises(HomeAssistantError, match="multiple outputs"):
         await async_move_device_to_room(_hass(), _entry(), device_id="d1", room_id="r2")
 
@@ -140,8 +142,8 @@ async def test_move_device_raises_for_a_single_record_with_multiple_output_addre
         device_addresses={"d1": 39},
         all_rooms=[_room("r2", "Room B", address=34)],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(return_value=site))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(return_value=site))
     with pytest.raises(HomeAssistantError, match="multiple outputs"):
         await async_move_device_to_room(_hass(), _entry(), device_id="d1", room_id="r2")
 
@@ -150,16 +152,16 @@ async def test_move_device_raises_for_a_device_with_no_controllable_output(monke
     # A real physical device (a motion sensor, an input-only device, a gateway) has an
     # entry in device_addresses but none in site.devices.
     site = _site(devices=[], device_addresses={"d1": 39})
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(return_value=site))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(return_value=site))
     with pytest.raises(HomeAssistantError, match="no controllable output"):
         await async_move_device_to_room(_hass(), _entry(), device_id="d1", room_id="r2")
 
 
 async def test_move_device_raises_if_room_not_found(monkeypatch):
     site = _site(devices=[_device()], device_addresses={"d1": 39})
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(return_value=site))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(return_value=site))
     with pytest.raises(HomeAssistantError, match="not found"):
         await async_move_device_to_room(_hass(), _entry(), device_id="d1", room_id="missing")
 
@@ -170,8 +172,8 @@ async def test_move_device_raises_if_destination_room_has_no_address(monkeypatch
         device_addresses={"d1": 39},
         all_rooms=[_room("r2", "Room B", address=None)],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(return_value=site))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(return_value=site))
     with pytest.raises(HomeAssistantError, match="no mesh group address"):
         await async_move_device_to_room(_hass(), _entry(), device_id="d1", room_id="r2")
 
@@ -182,8 +184,8 @@ async def test_move_device_raises_if_already_in_destination_room(monkeypatch):
         device_addresses={"d1": 39},
         all_rooms=[_room("r1", "Room A", address=14)],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(return_value=site))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(return_value=site))
     with pytest.raises(HomeAssistantError, match="already in room"):
         await async_move_device_to_room(_hass(), _entry(), device_id="d1", room_id="r1")
 
@@ -197,8 +199,8 @@ async def test_move_device_leaves_old_room_and_joins_new(monkeypatch):
         device_addresses={"d1": 39},
         all_rooms=[_room("r1", "Room A", address=14), _room("r2", "Room B", address=34)],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
 
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
 
@@ -214,7 +216,7 @@ async def test_move_device_does_not_double_reload_across_its_two_persists(monkey
     # persist, then the full one), each its own separate reload-lock acquisition. The real
     # update listener (not an injected flag) must recognize both as self-triggered and
     # never fire its own competing reload for either.
-    from plejd import _async_reload_entry
+    from plejd_cloud import _async_reload_entry
 
     hass = _hass()
     entry = _entry()
@@ -223,8 +225,8 @@ async def test_move_device_does_not_double_reload_across_its_two_persists(monkey
         device_addresses={"d1": 39},
         all_rooms=[_room("r1", "Room A", address=14), _room("r2", "Room B", address=34)],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
 
     listener_tasks: list[asyncio.Task] = []
 
@@ -272,8 +274,8 @@ async def test_move_device_joins_via_the_coordinator_current_at_join_time(monkey
         device_addresses={"d1": 39},
         all_rooms=[_room("r1", "Room A", address=14), _room("r2", "Room B", address=34)],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
 
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
 
@@ -300,8 +302,8 @@ async def test_move_device_patches_room_membership_when_both_rooms_already_exist
         all_rooms=[_room("r1", "Room A", address=14), _room("r2", "Room B", address=34)],
         rooms=[old_room, new_room, unrelated_room],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
 
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
 
@@ -329,8 +331,8 @@ async def test_move_device_leaves_room_membership_untouched_for_a_non_light_devi
         all_rooms=[_room("r1", "Room A", address=14), _room("r2", "Room B", address=34)],
         rooms=[old_room],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
 
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
 
@@ -357,8 +359,8 @@ async def test_move_device_drops_an_existing_destination_room_light_for_a_non_li
         all_rooms=[_room("r1", "Room A", address=14), _room("r2", "Room B", address=34)],
         rooms=[old_room, destination_room],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
 
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
 
@@ -377,8 +379,8 @@ async def test_move_device_prunes_a_non_light_pending_move_on_room_id_convergenc
         device_addresses={"d1": 39},
         all_rooms=[_room("r1", "Room A", address=14), _room("r2", "Room B", address=34)],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
     assert "d1" in hass.data[DATA_PENDING_ROOM_MOVES][entry.entry_id]
 
@@ -392,7 +394,7 @@ async def test_move_device_prunes_a_non_light_pending_move_on_room_id_convergenc
         all_rooms=[_room("r1", "Room A", address=14), _room("r2", "Room B", address=34)],
     )
     monkeypatch.setattr(
-        "plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[converged_site, converged_site])
+        "plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[converged_site, converged_site])
     )
     await async_move_device_to_room(hass, entry, device_id="e", room_id="r2")
 
@@ -416,8 +418,8 @@ async def test_move_device_prunes_a_pending_move_for_a_device_removed_from_the_s
         all_rooms=[_room("r1", "Room A", address=14), _room("r2", "Room B", address=34)],
         rooms=[r1],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
     assert "d1" in hass.data[DATA_PENDING_ROOM_MOVES][entry.entry_id]
 
@@ -429,7 +431,9 @@ async def test_move_device_prunes_a_pending_move_for_a_device_removed_from_the_s
         all_rooms=[_room("r1", "Room A", address=14), _room("r2", "Room B", address=34)],
         rooms=[r1],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[removed_site, removed_site]))
+    monkeypatch.setattr(
+        "plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[removed_site, removed_site])
+    )
     await async_move_device_to_room(hass, entry, device_id="e", room_id="r2")
 
     assert "d1" not in hass.data[DATA_PENDING_ROOM_MOVES][entry.entry_id]  # pruned: no longer on the site at all
@@ -452,8 +456,8 @@ async def test_move_device_leaves_room_membership_untouched_when_output_address_
         all_rooms=[_room("r1", "Room A", address=14), _room("r2", "Room B", address=34)],
         rooms=[old_room],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
 
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
 
@@ -481,8 +485,8 @@ async def test_move_device_drops_destination_room_for_a_non_light_device_with_un
         all_rooms=[_room("r1", "Room A", address=14), _room("r2", "Room B", address=34)],
         rooms=[old_room, destination_room],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
 
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
 
@@ -501,8 +505,8 @@ async def test_move_device_prunes_pending_move_with_unresolved_output_address_on
         device_addresses={"d1": 39},
         all_rooms=[_room("r1", "Room A", address=14), _room("r2", "Room B", address=34)],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
     assert "d1" in hass.data[DATA_PENDING_ROOM_MOVES][entry.entry_id]
 
@@ -516,7 +520,7 @@ async def test_move_device_prunes_pending_move_with_unresolved_output_address_on
         all_rooms=[_room("r1", "Room A", address=14), _room("r2", "Room B", address=34)],
     )
     monkeypatch.setattr(
-        "plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[converged_site, converged_site])
+        "plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[converged_site, converged_site])
     )
     await async_move_device_to_room(hass, entry, device_id="e", room_id="r2")
 
@@ -538,8 +542,8 @@ async def test_move_device_keeps_a_non_light_pending_move_with_unresolved_output
         device_addresses={"d1": 39},
         all_rooms=[_room("r1", "Room A", address=14), _room("r2", "Room B", address=34)],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
     assert "d1" in hass.data[DATA_PENDING_ROOM_MOVES][entry.entry_id]
 
@@ -558,7 +562,7 @@ async def test_move_device_keeps_a_non_light_pending_move_with_unresolved_output
         rooms=[destination_room],
     )
     monkeypatch.setattr(
-        "plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[converged_site, converged_site])
+        "plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[converged_site, converged_site])
     )
     await async_move_device_to_room(hass, entry, device_id="e", room_id="r2")
 
@@ -582,8 +586,8 @@ async def test_move_device_does_not_synthesize_a_room_not_already_present(monkey
         all_rooms=[_room("r1", "Room A", address=14), _room("r2", "Room B", address=34)],
         rooms=[old_room],  # r2 (the destination) has no light-group entity yet
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
 
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
 
@@ -609,9 +613,9 @@ async def test_move_device_forces_local_room_id_when_cloud_has_not_converged(mon
         device_addresses={"d1": 39},
         all_rooms=[_room("r1", "Room A", address=14), _room("r2", "Room B", address=34)],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
     monkeypatch.setattr(
-        "plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[initial_site, stale_refresh_site])
+        "plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[initial_site, stale_refresh_site])
     )
 
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
@@ -645,8 +649,8 @@ async def test_move_device_uses_cloud_room_for_a_device_it_has_never_moved(monke
             _room("r3", "Sovrum", address=46),
         ],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
 
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
 
@@ -689,8 +693,8 @@ async def test_move_device_restores_a_pending_move_from_entry_data_after_a_resta
             _room("r3", "Sovrum", address=46),
         ],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
 
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r3")
 
@@ -714,9 +718,9 @@ async def test_move_device_preserves_an_earlier_pending_move_for_another_device(
         device_addresses={"a": 39},
         all_rooms=list(rooms_by_id.values()),
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
     monkeypatch.setattr(
-        "plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[device_a_site, device_a_site])
+        "plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[device_a_site, device_a_site])
     )
     await async_move_device_to_room(hass, entry, device_id="a", room_id="r2")
     moved_a = next(d for d in entry.data["devices"] if d["device_id"] == "a")
@@ -732,7 +736,7 @@ async def test_move_device_preserves_an_earlier_pending_move_for_another_device(
         all_rooms=list(rooms_by_id.values()),
     )
     monkeypatch.setattr(
-        "plejd.manage_device_room.async_get_site",
+        "plejd_cloud.manage_device_room.async_get_site",
         AsyncMock(side_effect=[both_devices_stale_site, both_devices_stale_site]),
     )
     await async_move_device_to_room(hass, entry, device_id="b", room_id="r3")
@@ -765,7 +769,7 @@ async def test_move_device_preserves_an_earlier_pending_move_for_another_device(
         ],
     )
     monkeypatch.setattr(
-        "plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[converged_site, converged_site])
+        "plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[converged_site, converged_site])
     )
     await async_move_device_to_room(hass, entry, device_id="b", room_id="r1")
 
@@ -802,8 +806,10 @@ async def test_move_device_reapplies_room_membership_for_every_pending_device(mo
         all_rooms=all_rooms,
         rooms=[r1, r2],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[stale_site, stale_site]))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr(
+        "plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[stale_site, stale_site])
+    )
     await async_move_device_to_room(hass, entry, device_id="a", room_id="r2")
 
     rooms_by_id = {r["room_id"]: r for r in entry.data["rooms"]}
@@ -812,7 +818,9 @@ async def test_move_device_reapplies_room_membership_for_every_pending_device(mo
 
     # Move "b" too - the cloud fetch is the SAME stale snapshot, with no idea "a" ever
     # moved (still shows r1=[39, 51], r2=[60]).
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[stale_site, stale_site]))
+    monkeypatch.setattr(
+        "plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[stale_site, stale_site])
+    )
     await async_move_device_to_room(hass, entry, device_id="b", room_id="r3")
 
     rooms_by_id = {r["room_id"]: r for r in entry.data["rooms"]}
@@ -839,9 +847,9 @@ async def test_move_device_records_pending_before_a_refresh_can_fail(monkeypatch
             _room("r3", "Sovrum", address=46),
         ],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
     monkeypatch.setattr(
-        "plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[site, PlejdCloudError("down")])
+        "plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[site, PlejdCloudError("down")])
     )
     with pytest.raises(HomeAssistantError, match="Plejd cloud error refreshing site"):
         await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
@@ -856,14 +864,14 @@ async def test_move_device_records_pending_before_a_refresh_can_fail(monkeypatch
     # An exact retry of the same move now correctly reports "already in room" - the device
     # really is already there, physically, even though entry.data's own cached view (never
     # updated, since the refresh failed) still shows it in r1.
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
     with pytest.raises(HomeAssistantError, match="already in room"):
         await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
 
     # A move to a THIRD room, however, must leave r2 (where the device actually now is),
     # not stale r1 - the fresh site fetch below still (incorrectly) reports r1, exactly as
     # it would if the failed refresh above had simply never run.
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r3")
 
     coordinator.async_leave_mesh_group.assert_awaited_with(39, 34)  # r2, not stale r1
@@ -896,13 +904,17 @@ async def test_move_device_preserves_the_original_stale_room_across_a_chain_of_m
         all_rooms=all_rooms,
         rooms=[r1],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[stale_site, stale_site]))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr(
+        "plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[stale_site, stale_site])
+    )
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
 
     # Move again, r2 -> r3, before the cloud has any idea about EITHER move - it still
     # shows the device in the ORIGINAL r1, never having converged even the first hop.
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[stale_site, stale_site]))
+    monkeypatch.setattr(
+        "plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[stale_site, stale_site])
+    )
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r3")
 
     rooms_by_id = {r["room_id"]: r for r in entry.data["rooms"]}
@@ -912,7 +924,9 @@ async def test_move_device_preserves_the_original_stale_room_across_a_chain_of_m
     # matches neither r3 (this pending's own target) nor r2 (the second move's own
     # immediate predecessor) - only the chain's TRUE origin, r1, proves it's still the same
     # ordinary non-convergence, not an external change.
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[stale_site, stale_site]))
+    monkeypatch.setattr(
+        "plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[stale_site, stale_site])
+    )
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r4")
 
     assert "d1" in hass.data[DATA_PENDING_ROOM_MOVES][entry.entry_id]  # not wrongly treated as externally stale
@@ -937,9 +951,9 @@ async def test_move_device_prunes_a_pending_move_that_has_actually_converged(mon
         device_addresses={"d1": 39},
         all_rooms=all_rooms,
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
     monkeypatch.setattr(
-        "plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[unconverged_site, unconverged_site])
+        "plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[unconverged_site, unconverged_site])
     )
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
     assert "d1" in hass.data[DATA_PENDING_ROOM_MOVES][entry.entry_id]
@@ -959,7 +973,7 @@ async def test_move_device_prunes_a_pending_move_that_has_actually_converged(mon
     )
     coordinator = entry.runtime_data
     monkeypatch.setattr(
-        "plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[converged_site, converged_site])
+        "plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[converged_site, converged_site])
     )
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r3")
 
@@ -981,9 +995,9 @@ async def test_move_device_persists_a_prune_before_an_already_in_room_exit(monke
         device_addresses={"d1": 39},
         all_rooms=all_rooms,
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
     monkeypatch.setattr(
-        "plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[unconverged_site, unconverged_site])
+        "plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[unconverged_site, unconverged_site])
     )
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
     assert "d1" in entry.data[CONF_PENDING_ROOM_MOVES]
@@ -1000,7 +1014,7 @@ async def test_move_device_persists_a_prune_before_an_already_in_room_exit(monke
         all_rooms=all_rooms,
         rooms=[r2],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(return_value=converged_site))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(return_value=converged_site))
     with pytest.raises(HomeAssistantError, match="already in room"):
         await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
 
@@ -1012,7 +1026,7 @@ async def test_move_device_runs_a_follow_up_reload_after_persisting_a_prune(monk
     # A concurrent options change racing the guarded persist-only update (from the prune
     # above) must not be silently dropped - its own reload is deferred while our guard is
     # up, then run as a follow-up once we're done, the same as the main refresh cycle does.
-    from plejd import schedule_ws
+    from plejd_cloud import schedule_ws
 
     hass = _hass()
     entry = _entry()
@@ -1022,9 +1036,9 @@ async def test_move_device_runs_a_follow_up_reload_after_persisting_a_prune(monk
         device_addresses={"d1": 39},
         all_rooms=all_rooms,
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
     monkeypatch.setattr(
-        "plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[unconverged_site, unconverged_site])
+        "plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[unconverged_site, unconverged_site])
     )
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
 
@@ -1037,7 +1051,7 @@ async def test_move_device_runs_a_follow_up_reload_after_persisting_a_prune(monk
         all_rooms=all_rooms,
         rooms=[r2],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(return_value=converged_site))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(return_value=converged_site))
 
     original_update_entry = hass.config_entries.async_update_entry
 
@@ -1074,9 +1088,9 @@ async def test_move_device_detects_a_pending_move_made_stale_by_a_later_app_move
         device_addresses={"d1": 39},
         all_rooms=all_rooms,
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
     monkeypatch.setattr(
-        "plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[unconverged_site, unconverged_site])
+        "plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[unconverged_site, unconverged_site])
     )
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
 
@@ -1089,7 +1103,7 @@ async def test_move_device_detects_a_pending_move_made_stale_by_a_later_app_move
         all_rooms=all_rooms,
     )
     monkeypatch.setattr(
-        "plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[app_moved_site, app_moved_site])
+        "plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[app_moved_site, app_moved_site])
     )
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r4")
 
@@ -1111,9 +1125,9 @@ async def test_move_device_keeps_pending_when_room_id_converged_but_membership_h
         device_addresses={"d1": 39},
         all_rooms=all_rooms,
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
     monkeypatch.setattr(
-        "plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[unconverged_site, unconverged_site])
+        "plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[unconverged_site, unconverged_site])
     )
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
 
@@ -1124,7 +1138,7 @@ async def test_move_device_keeps_pending_when_room_id_converged_but_membership_h
         device_addresses={"d1": 39},
         all_rooms=all_rooms,
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(return_value=room_id_converged_site))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(return_value=room_id_converged_site))
     with pytest.raises(HomeAssistantError, match="already in room"):
         await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
 
@@ -1155,8 +1169,10 @@ async def test_move_device_strips_the_room_actually_left_when_membership_outpace
         all_rooms=all_rooms,
         rooms=[r1],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[initial_site, initial_site]))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr(
+        "plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[initial_site, initial_site])
+    )
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
 
     # Membership converged for the first move (r2 now lists 39) but roomId didn't (the
@@ -1171,7 +1187,7 @@ async def test_move_device_strips_the_room_actually_left_when_membership_outpace
         rooms=[r2_converged],  # r1 no longer lists it at all - only r2 does
     )
     monkeypatch.setattr(
-        "plejd.manage_device_room.async_get_site",
+        "plejd_cloud.manage_device_room.async_get_site",
         AsyncMock(side_effect=[partially_converged_site, partially_converged_site]),
     )
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r3")
@@ -1195,8 +1211,10 @@ async def test_move_device_keeps_pending_when_only_room_id_has_converged(monkeyp
         all_rooms=all_rooms,
         rooms=[r1],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[initial_site, initial_site]))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr(
+        "plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[initial_site, initial_site])
+    )
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
 
     # A later, unrelated move: room_id has converged (the cloud now shows "d1" in "r2")
@@ -1208,7 +1226,7 @@ async def test_move_device_keeps_pending_when_only_room_id_has_converged(monkeyp
         rooms=[r1],
     )
     monkeypatch.setattr(
-        "plejd.manage_device_room.async_get_site",
+        "plejd_cloud.manage_device_room.async_get_site",
         AsyncMock(side_effect=[partially_converged_site, partially_converged_site]),
     )
     await async_move_device_to_room(hass, entry, device_id="e", room_id="r2")
@@ -1235,8 +1253,10 @@ async def test_move_device_keeps_pending_when_still_listed_in_another_room(monke
         all_rooms=all_rooms,
         rooms=[r1],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[initial_site, initial_site]))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr(
+        "plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[initial_site, initial_site])
+    )
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
 
     # A later, unrelated move: the cloud now shows 39 as a member of BOTH r1 and r2 - only
@@ -1254,7 +1274,7 @@ async def test_move_device_keeps_pending_when_still_listed_in_another_room(monke
         rooms=[r1_still_listing_it, r2_now_listing_it],
     )
     monkeypatch.setattr(
-        "plejd.manage_device_room.async_get_site",
+        "plejd_cloud.manage_device_room.async_get_site",
         AsyncMock(side_effect=[partially_converged_site, partially_converged_site]),
     )
     await async_move_device_to_room(hass, entry, device_id="e", room_id="r2")
@@ -1283,8 +1303,10 @@ async def test_move_device_prunes_a_light_pending_move_into_a_permanently_mixed_
         all_rooms=all_rooms,
         rooms=[r1],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[initial_site, initial_site]))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr(
+        "plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[initial_site, initial_site])
+    )
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
 
     # A later, unrelated move: room_id has converged, r2 now genuinely has a non-light
@@ -1302,7 +1324,7 @@ async def test_move_device_prunes_a_light_pending_move_into_a_permanently_mixed_
         rooms=[],  # r2 excluded entirely: mixed light + non-light membership
     )
     monkeypatch.setattr(
-        "plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[converged_site, converged_site])
+        "plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[converged_site, converged_site])
     )
     await async_move_device_to_room(hass, entry, device_id="e", room_id="r2")
 
@@ -1322,8 +1344,8 @@ async def test_move_device_keeps_a_non_light_pending_move_while_destination_room
         device_addresses={"d1": 39},
         all_rooms=[_room("r1", "Room A", address=14), _room("r2", "Room B", address=34)],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
     assert "d1" in hass.data[DATA_PENDING_ROOM_MOVES][entry.entry_id]
 
@@ -1342,7 +1364,7 @@ async def test_move_device_keeps_a_non_light_pending_move_while_destination_room
         rooms=[destination_room],
     )
     monkeypatch.setattr(
-        "plejd.manage_device_room.async_get_site",
+        "plejd_cloud.manage_device_room.async_get_site",
         AsyncMock(side_effect=[partially_converged_site, partially_converged_site]),
     )
     await async_move_device_to_room(hass, entry, device_id="e", room_id="r2")
@@ -1361,8 +1383,8 @@ async def test_move_device_skips_leave_when_device_has_no_current_room(monkeypat
         device_addresses={"d1": 39},
         all_rooms=[_room("r2", "Room B", address=34)],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
 
     await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
 
@@ -1381,8 +1403,8 @@ async def test_move_device_raises_when_old_room_has_no_address(monkeypatch):
         device_addresses={"d1": 39},
         all_rooms=[_room("r1", "Room A", address=None), _room("r2", "Room B", address=34)],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(return_value=site))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(return_value=site))
 
     with pytest.raises(HomeAssistantError, match="no resolvable mesh group address"):
         await async_move_device_to_room(hass, entry, device_id="d1", room_id="r2")
@@ -1397,9 +1419,9 @@ async def test_move_device_raises_on_cloud_error_during_refresh(monkeypatch):
         device_addresses={"d1": 39},
         all_rooms=[_room("r1", "Room A", address=14), _room("r2", "Room B", address=34)],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
     monkeypatch.setattr(
-        "plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[site, PlejdCloudError("down")])
+        "plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[site, PlejdCloudError("down")])
     )
     with pytest.raises(HomeAssistantError, match="Plejd cloud error refreshing site"):
         await async_move_device_to_room(_hass(), _entry(), device_id="d1", room_id="r2")
@@ -1413,15 +1435,15 @@ async def test_move_device_raises_when_reload_fails(monkeypatch):
         device_addresses={"d1": 39},
         all_rooms=[_room("r1", "Room A", address=14), _room("r2", "Room B", address=34)],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
 
     with pytest.raises(HomeAssistantError, match="failed to reload after moving a device to a room"):
         await async_move_device_to_room(hass, _entry(), device_id="d1", room_id="r2")
 
 
 async def test_move_device_runs_a_follow_up_reload_for_a_concurrent_change(monkeypatch):
-    from plejd import schedule_ws
+    from plejd_cloud import schedule_ws
 
     hass = _hass()
     site = _site(
@@ -1429,8 +1451,8 @@ async def test_move_device_runs_a_follow_up_reload_for_a_concurrent_change(monke
         device_addresses={"d1": 39},
         all_rooms=[_room("r1", "Room A", address=14), _room("r2", "Room B", address=34)],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(side_effect=[site, site]))
 
     calls: list[str] = []
 
@@ -1465,7 +1487,7 @@ async def test_move_device_serializes_concurrent_calls_for_the_same_device(monke
             _room("r3", "Sovrum", address=46),
         ],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(return_value=site))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(return_value=site))
 
     call_order: list[str] = []
     release_first = asyncio.Event()
@@ -1477,7 +1499,7 @@ async def test_move_device_serializes_concurrent_calls_for_the_same_device(monke
         call_order.append("login_done")
         return "tok"
 
-    monkeypatch.setattr("plejd.manage_device_room.async_login", _login_pauses_the_first_call)
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", _login_pauses_the_first_call)
 
     first = asyncio.ensure_future(async_move_device_to_room(hass, entry, device_id="d1", room_id="r2"))
     await asyncio.sleep(0)
@@ -1510,7 +1532,7 @@ async def test_move_device_serializes_concurrent_calls_for_different_devices(mon
         device_addresses={"d1": 39, "d2": 51},
         all_rooms=[_room("r1", "Room A", address=14), _room("r2", "Room B", address=34)],
     )
-    monkeypatch.setattr("plejd.manage_device_room.async_get_site", AsyncMock(return_value=site))
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_get_site", AsyncMock(return_value=site))
 
     call_order: list[str] = []
     release_first = asyncio.Event()
@@ -1522,7 +1544,7 @@ async def test_move_device_serializes_concurrent_calls_for_different_devices(mon
         call_order.append("login_done")
         return "tok"
 
-    monkeypatch.setattr("plejd.manage_device_room.async_login", _login_pauses_the_first_call)
+    monkeypatch.setattr("plejd_cloud.manage_device_room.async_login", _login_pauses_the_first_call)
 
     first = asyncio.ensure_future(async_move_device_to_room(hass, entry, device_id="d1", room_id="r2"))
     await asyncio.sleep(0)
@@ -1540,7 +1562,7 @@ async def test_move_device_serializes_concurrent_calls_for_different_devices(mon
 
 
 async def test_persist_pending_logs_when_the_follow_up_reload_raises(caplog):
-    from plejd import schedule_ws
+    from plejd_cloud import schedule_ws
 
     hass = _hass()
     entry = _entry()

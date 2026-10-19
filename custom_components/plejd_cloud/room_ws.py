@@ -32,7 +32,8 @@ LIGHT_STYLES = (
 )  # fmt: skip
 ROOM_SIZES = (1, 2, 3)  # grid columns a room card spans
 
-EVENT_ROOMS_CHANGED = f"{DOMAIN}_rooms_changed"
+# Kept from upstream (not domain-derived): the built panel subscribes to this exact name.
+EVENT_ROOMS_CHANGED = "plejd_rooms_changed"
 
 _STORE_KEY = f"{DOMAIN}.light_styles"
 _LAYOUT_STORE_KEY = f"{DOMAIN}.room_layout"

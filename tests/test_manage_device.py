@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.exceptions import HomeAssistantError
-from plejd.cloud import (
+from plejd_cloud.cloud import (
     PlejdAuthError,
     PlejdCloudDevice,
     PlejdCloudError,
@@ -15,7 +15,7 @@ from plejd.cloud import (
     PlejdCloudMotion,
     PlejdCloudSite,
 )
-from plejd.manage_device import async_remove_device
+from plejd_cloud.manage_device import async_remove_device
 
 _KEY = bytes(range(16))
 
@@ -82,20 +82,20 @@ def _entry(data=None, options=None):
 
 
 async def test_remove_device_raises_if_device_not_found(monkeypatch):
-    monkeypatch.setattr("plejd.manage_device.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device.async_get_site", AsyncMock(return_value=_site([])))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_get_site", AsyncMock(return_value=_site([])))
     with pytest.raises(HomeAssistantError, match="not found"):
         await async_remove_device(_hass(), _entry(), device_id="missing")
 
 
 async def test_remove_device_raises_on_login_failure(monkeypatch):
-    monkeypatch.setattr("plejd.manage_device.async_login", AsyncMock(side_effect=PlejdCloudError("down")))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_login", AsyncMock(side_effect=PlejdCloudError("down")))
     with pytest.raises(HomeAssistantError, match="Plejd cloud error"):
         await async_remove_device(_hass(), _entry(), device_id="d1")
 
 
 async def test_remove_device_triggers_reauth_on_stale_credentials(monkeypatch):
-    monkeypatch.setattr("plejd.manage_device.async_login", AsyncMock(side_effect=PlejdAuthError("bad creds")))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_login", AsyncMock(side_effect=PlejdAuthError("bad creds")))
     hass = _hass()
     entry = _entry()
     entry.async_start_reauth = MagicMock()
@@ -105,34 +105,36 @@ async def test_remove_device_triggers_reauth_on_stale_credentials(monkeypatch):
 
 
 async def test_remove_device_raises_on_get_site_failure(monkeypatch):
-    monkeypatch.setattr("plejd.manage_device.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device.async_get_site", AsyncMock(side_effect=PlejdCloudError("down")))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_get_site", AsyncMock(side_effect=PlejdCloudError("down")))
     with pytest.raises(HomeAssistantError, match="Plejd cloud error"):
         await async_remove_device(_hass(), _entry(), device_id="d1")
 
 
 async def test_remove_device_raises_on_cloud_error_during_removal(monkeypatch):
-    monkeypatch.setattr("plejd.manage_device.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device.async_get_site", AsyncMock(return_value=_site([_device()])))
-    monkeypatch.setattr("plejd.manage_device.async_cloud_remove_device", AsyncMock(side_effect=PlejdCloudError("down")))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_get_site", AsyncMock(return_value=_site([_device()])))
+    monkeypatch.setattr(
+        "plejd_cloud.manage_device.async_cloud_remove_device", AsyncMock(side_effect=PlejdCloudError("down"))
+    )
     with pytest.raises(HomeAssistantError, match="Plejd cloud error removing device"):
         await async_remove_device(_hass(), _entry(), device_id="d1")
 
 
 async def test_remove_device_raises_when_cloud_rejects_removal(monkeypatch):
-    monkeypatch.setattr("plejd.manage_device.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device.async_get_site", AsyncMock(return_value=_site([_device()])))
-    monkeypatch.setattr("plejd.manage_device.async_cloud_remove_device", AsyncMock(return_value=False))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_get_site", AsyncMock(return_value=_site([_device()])))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_cloud_remove_device", AsyncMock(return_value=False))
     with pytest.raises(HomeAssistantError, match="rejected"):
         await async_remove_device(_hass(), _entry(), device_id="d1")
 
 
 async def test_remove_device_raises_on_cloud_error_during_refresh(monkeypatch):
-    monkeypatch.setattr("plejd.manage_device.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_login", AsyncMock(return_value="tok"))
     monkeypatch.setattr(
-        "plejd.manage_device.async_get_site", AsyncMock(side_effect=[_site([_device()]), PlejdCloudError("down")])
+        "plejd_cloud.manage_device.async_get_site", AsyncMock(side_effect=[_site([_device()]), PlejdCloudError("down")])
     )
-    monkeypatch.setattr("plejd.manage_device.async_cloud_remove_device", AsyncMock(return_value=True))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_cloud_remove_device", AsyncMock(return_value=True))
     with pytest.raises(HomeAssistantError, match="Plejd cloud error refreshing site"):
         await async_remove_device(_hass(), _entry(), device_id="d1")
 
@@ -140,10 +142,12 @@ async def test_remove_device_raises_on_cloud_error_during_refresh(monkeypatch):
 async def test_remove_device_succeeds_and_reloads(monkeypatch):
     hass = _hass()
     entry = _entry()
-    monkeypatch.setattr("plejd.manage_device.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device.async_get_site", AsyncMock(side_effect=[_site([_device()]), _site([])]))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr(
+        "plejd_cloud.manage_device.async_get_site", AsyncMock(side_effect=[_site([_device()]), _site([])])
+    )
     remove_mock = AsyncMock(return_value=True)
-    monkeypatch.setattr("plejd.manage_device.async_cloud_remove_device", remove_mock)
+    monkeypatch.setattr("plejd_cloud.manage_device.async_cloud_remove_device", remove_mock)
 
     await async_remove_device(hass, entry, device_id="d1")
 
@@ -159,9 +163,11 @@ async def test_remove_device_does_not_raise_when_only_the_reload_fails(monkeypat
     hass = _hass()
     entry = _entry()
     hass.config_entries.async_reload = AsyncMock(return_value=False)
-    monkeypatch.setattr("plejd.manage_device.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device.async_get_site", AsyncMock(side_effect=[_site([_device()]), _site([])]))
-    monkeypatch.setattr("plejd.manage_device.async_cloud_remove_device", AsyncMock(return_value=True))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr(
+        "plejd_cloud.manage_device.async_get_site", AsyncMock(side_effect=[_site([_device()]), _site([])])
+    )
+    monkeypatch.setattr("plejd_cloud.manage_device.async_cloud_remove_device", AsyncMock(return_value=True))
 
     await async_remove_device(hass, entry, device_id="d1")
 
@@ -170,18 +176,18 @@ async def test_remove_device_does_not_raise_when_only_the_reload_fails(monkeypat
 
 async def test_remove_device_finds_input_devices(monkeypatch):
     input_dev = PlejdCloudInput(device_id="d2", name="Hallway button", address=22)
-    monkeypatch.setattr("plejd.manage_device.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device.async_get_site", AsyncMock(return_value=_site(inputs=[input_dev])))
-    monkeypatch.setattr("plejd.manage_device.async_cloud_remove_device", AsyncMock(return_value=False))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_get_site", AsyncMock(return_value=_site(inputs=[input_dev])))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_cloud_remove_device", AsyncMock(return_value=False))
     with pytest.raises(HomeAssistantError, match="Hallway button"):
         await async_remove_device(_hass(), _entry(), device_id="d2")
 
 
 async def test_remove_device_finds_motion_sensors(monkeypatch):
     motion_dev = PlejdCloudMotion(device_id="d3", name="Hall motion", address=33)
-    monkeypatch.setattr("plejd.manage_device.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device.async_get_site", AsyncMock(return_value=_site(motion=[motion_dev])))
-    monkeypatch.setattr("plejd.manage_device.async_cloud_remove_device", AsyncMock(return_value=False))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_get_site", AsyncMock(return_value=_site(motion=[motion_dev])))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_cloud_remove_device", AsyncMock(return_value=False))
     with pytest.raises(HomeAssistantError, match="Hall motion"):
         await async_remove_device(_hass(), _entry(), device_id="d3")
 
@@ -191,9 +197,9 @@ async def test_remove_device_found_despite_missing_address_entry(monkeypatch):
     # is None - is exactly the kind of stale/orphaned device this service exists to
     # decommission; it must not be rejected as "not found" for lacking an address.
     device = _device(device_id="d4", name="Orphaned dimmer", address=None)
-    monkeypatch.setattr("plejd.manage_device.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device.async_get_site", AsyncMock(return_value=_site([device])))
-    monkeypatch.setattr("plejd.manage_device.async_cloud_remove_device", AsyncMock(return_value=False))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_get_site", AsyncMock(return_value=_site([device])))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_cloud_remove_device", AsyncMock(return_value=False))
     with pytest.raises(HomeAssistantError, match="Orphaned dimmer"):
         await async_remove_device(_hass(), _entry(), device_id="d4")
 
@@ -203,12 +209,12 @@ async def test_remove_device_found_via_firmware_by_device_only(monkeypatch):
     # missing from devices/inputs/motion entirely, not just address-less within one of
     # them - but parse_site() still tracks it in firmware_by_device unconditionally.
     device = _device(device_id="d5", name="Spottar")  # any device present, so the site isn't fully empty
-    monkeypatch.setattr("plejd.manage_device.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_login", AsyncMock(return_value="tok"))
     monkeypatch.setattr(
-        "plejd.manage_device.async_get_site",
+        "plejd_cloud.manage_device.async_get_site",
         AsyncMock(return_value=_site([device], firmware_by_device={"d6": object()})),
     )
-    monkeypatch.setattr("plejd.manage_device.async_cloud_remove_device", AsyncMock(return_value=False))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_cloud_remove_device", AsyncMock(return_value=False))
     with pytest.raises(HomeAssistantError, match="d6"):  # no display name available - falls back to the id
         await async_remove_device(_hass(), _entry(), device_id="d6")
 
@@ -216,9 +222,9 @@ async def test_remove_device_found_via_firmware_by_device_only(monkeypatch):
 async def test_remove_device_resets_forced_transport_when_gateway_removed(monkeypatch):
     hass = _hass()
     entry = _entry(options={"transport": "gateway"})
-    monkeypatch.setattr("plejd.manage_device.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_login", AsyncMock(return_value="tok"))
     monkeypatch.setattr(
-        "plejd.manage_device.async_get_site",
+        "plejd_cloud.manage_device.async_get_site",
         AsyncMock(
             side_effect=[
                 _site([_device()], gateways=["GWY-01"], resource_set_id="rs1"),
@@ -226,7 +232,7 @@ async def test_remove_device_resets_forced_transport_when_gateway_removed(monkey
             ]
         ),
     )
-    monkeypatch.setattr("plejd.manage_device.async_cloud_remove_device", AsyncMock(return_value=True))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_cloud_remove_device", AsyncMock(return_value=True))
 
     await async_remove_device(hass, entry, device_id="d1")
 
@@ -236,9 +242,9 @@ async def test_remove_device_resets_forced_transport_when_gateway_removed(monkey
 async def test_remove_device_keeps_forced_transport_when_gateway_remains(monkeypatch):
     hass = _hass()
     entry = _entry(options={"transport": "gateway"})
-    monkeypatch.setattr("plejd.manage_device.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_login", AsyncMock(return_value="tok"))
     monkeypatch.setattr(
-        "plejd.manage_device.async_get_site",
+        "plejd_cloud.manage_device.async_get_site",
         AsyncMock(
             side_effect=[
                 _site([_device()], gateways=["GWY-01"], resource_set_id="rs1"),
@@ -246,7 +252,7 @@ async def test_remove_device_keeps_forced_transport_when_gateway_remains(monkeyp
             ]
         ),
     )
-    monkeypatch.setattr("plejd.manage_device.async_cloud_remove_device", AsyncMock(return_value=True))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_cloud_remove_device", AsyncMock(return_value=True))
 
     await async_remove_device(hass, entry, device_id="d1")
 
@@ -254,21 +260,23 @@ async def test_remove_device_keeps_forced_transport_when_gateway_remains(monkeyp
 
 
 async def test_remove_device_finds_gateway_by_id_with_no_display_name(monkeypatch):
-    monkeypatch.setattr("plejd.manage_device.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device.async_get_site", AsyncMock(return_value=_site(gateways=["GWY-01"])))
-    monkeypatch.setattr("plejd.manage_device.async_cloud_remove_device", AsyncMock(return_value=False))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_get_site", AsyncMock(return_value=_site(gateways=["GWY-01"])))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_cloud_remove_device", AsyncMock(return_value=False))
     with pytest.raises(HomeAssistantError, match="GWY-01"):
         await async_remove_device(_hass(), _entry(), device_id="GWY-01")
 
 
 async def test_remove_device_runs_a_follow_up_reload_for_a_concurrent_change(monkeypatch):
-    from plejd import schedule_ws
+    from plejd_cloud import schedule_ws
 
     hass = _hass()
     entry = _entry()
-    monkeypatch.setattr("plejd.manage_device.async_login", AsyncMock(return_value="tok"))
-    monkeypatch.setattr("plejd.manage_device.async_get_site", AsyncMock(side_effect=[_site([_device()]), _site([])]))
-    monkeypatch.setattr("plejd.manage_device.async_cloud_remove_device", AsyncMock(return_value=True))
+    monkeypatch.setattr("plejd_cloud.manage_device.async_login", AsyncMock(return_value="tok"))
+    monkeypatch.setattr(
+        "plejd_cloud.manage_device.async_get_site", AsyncMock(side_effect=[_site([_device()]), _site([])])
+    )
+    monkeypatch.setattr("plejd_cloud.manage_device.async_cloud_remove_device", AsyncMock(return_value=True))
 
     calls: list[str] = []
 

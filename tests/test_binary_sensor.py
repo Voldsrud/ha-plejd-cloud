@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import types
 
-from plejd.binary_sensor import PlejdMotionBinarySensor, PlejdProblemBinarySensor, async_setup_entry
-from plejd.cloud import PlejdCloudDevice, PlejdCloudInput, PlejdCloudMotion
-from plejd.protocol import MotionEvent
+from plejd_cloud.binary_sensor import PlejdMotionBinarySensor, PlejdProblemBinarySensor, async_setup_entry
+from plejd_cloud.cloud import PlejdCloudDevice, PlejdCloudInput, PlejdCloudMotion
+from plejd_cloud.protocol import MotionEvent
 
 
 def _device(device_id="d1", address=5, output_index=0):

@@ -7,9 +7,9 @@ import types
 import pytest
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
-from plejd import room_ws
-from plejd.cloud import PlejdCloudRoom
-from plejd.schedule_ws import DATA_ENTRY
+from plejd_cloud import room_ws
+from plejd_cloud.cloud import PlejdCloudRoom
+from plejd_cloud.schedule_ws import DATA_ENTRY
 
 
 class _Conn:
@@ -143,7 +143,7 @@ async def test_style_set_rejects_an_unknown_light():
 
 async def test_styles_are_empty_when_plejd_is_not_loaded():
     hass = _hass(entry=False)
-    hass.data[("store", "plejd.light_styles")] = {"d3": "wall"}
+    hass.data[("store", "plejd_cloud.light_styles")] = {"d3": "wall"}
     conn = _Conn()
     await room_ws.ws_styles_get(hass, conn, {"id": 1})
     assert conn.result[1]["styles"] == {}
@@ -290,7 +290,7 @@ async def test_rename_reports_a_cloud_failure_and_leaves_ha_untouched(error, cod
 
 
 async def test_rename_rejected_credentials_start_reauth():
-    from plejd.cloud import PlejdAuthError
+    from plejd_cloud.cloud import PlejdAuthError
 
     hass, _, reauth = _rename_hass(rename_error=PlejdAuthError("bad"))
     conn = _Conn()

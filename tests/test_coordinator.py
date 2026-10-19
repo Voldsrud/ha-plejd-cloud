@@ -8,9 +8,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
-from plejd import connection as conn
-from plejd import coordinator as coordinator_mod
-from plejd.const import (
+from plejd_cloud import connection as conn
+from plejd_cloud import coordinator as coordinator_mod
+from plejd_cloud.const import (
     CONF_CRYPTO_KEY,
     CONF_DEVICE_ADDRESSES,
     CONF_DEVICES,
@@ -28,7 +28,7 @@ from plejd.const import (
     PLEJD_CHAR_DATA_UUID,
     PLEJD_SERVICE_UUID,
 )
-from plejd.coordinator import PlejdCoordinator
+from plejd_cloud.coordinator import PlejdCoordinator
 
 _KEY_HEX = "00112233445566778899aabbccddeeff"
 _DEV = {
@@ -247,8 +247,8 @@ async def test_set_output_without_connection_raises():
 
 
 async def test_all_off_turns_off_every_light_output(monkeypatch):
-    from plejd.const import CMD_GROUP_STATE_AND_LEVEL
-    from plejd.protocol import decode_command
+    from plejd_cloud.const import CMD_GROUP_STATE_AND_LEVEL
+    from plejd_cloud.protocol import decode_command
 
     client = _FakeClient()
     _patch_connect(monkeypatch, client)
@@ -316,7 +316,7 @@ async def test_all_off_raises_when_every_output_fails(monkeypatch):
 
 
 async def test_set_group_output_writes_group_command_and_reflects_member_state(monkeypatch):
-    from plejd.protocol import decode_command
+    from plejd_cloud.protocol import decode_command
 
     client = _FakeClient()
     _patch_connect(monkeypatch, client)
@@ -373,7 +373,7 @@ async def test_execute_scene_broadcasts(monkeypatch):
     await c.async_start()
     await c.async_execute_scene(2)
     # scene is a broadcast (address 0) of opcode 0x0021 with the index
-    from plejd.protocol import CMD_SCENE, decode_command
+    from plejd_cloud.protocol import CMD_SCENE, decode_command
 
     cmd = decode_command(c._connection.mesh.decrypt(client.writes[-1][1]))
     assert cmd.address == 0 and cmd.command == CMD_SCENE and cmd.data == bytes([2])
@@ -396,7 +396,7 @@ async def test_leave_mesh_group_writes_expected_vector(monkeypatch):
     await c.async_start()
     await c.async_leave_mesh_group(0x27, 0x0E)
 
-    from plejd.protocol import CMD_MESH_GROUP_MEMBERSHIP, decode_command
+    from plejd_cloud.protocol import CMD_MESH_GROUP_MEMBERSHIP, decode_command
 
     cmd = decode_command(c._connection.mesh.decrypt(client.writes[-1][1]))
     assert cmd.address == 0x27 and cmd.command == CMD_MESH_GROUP_MEMBERSHIP
@@ -412,7 +412,7 @@ async def test_join_mesh_group_writes_expected_vector(monkeypatch):
     await c.async_start()
     await c.async_join_mesh_group(0x27, 0x22)
 
-    from plejd.protocol import CMD_MESH_GROUP_MEMBERSHIP, decode_command
+    from plejd_cloud.protocol import CMD_MESH_GROUP_MEMBERSHIP, decode_command
 
     cmd = decode_command(c._connection.mesh.decrypt(client.writes[-1][1]))
     assert cmd.address == 0x27 and cmd.command == CMD_MESH_GROUP_MEMBERSHIP
@@ -448,8 +448,8 @@ def test_notify_outputs_calls_listeners():
 
 
 def test_output_event_notifies_listeners():
-    from plejd.const import CMD_GROUP_STATE_AND_LEVEL
-    from plejd.protocol import Command
+    from plejd_cloud.const import CMD_GROUP_STATE_AND_LEVEL
+    from plejd_cloud.protocol import Command
 
     c = PlejdCoordinator(_hass(), _entry())
     seen = []
@@ -489,8 +489,8 @@ async def _connected_coordinator_with_room(monkeypatch):
 
 async def test_group_state_event_fans_out_to_room_members(monkeypatch):
     """A room-group broadcast from outside HA (e.g. the Plejd app) must update member state too."""
-    from plejd.const import CMD_GROUP_STATE_AND_LEVEL
-    from plejd.protocol import Command
+    from plejd_cloud.const import CMD_GROUP_STATE_AND_LEVEL
+    from plejd_cloud.protocol import Command
 
     c = await _connected_coordinator_with_room(monkeypatch)
     state_cmd = Command(address=14, command_type=0x10, command=CMD_GROUP_STATE_AND_LEVEL, data=bytes([1, 0, 200]))
@@ -500,8 +500,8 @@ async def test_group_state_event_fans_out_to_room_members(monkeypatch):
 
 
 async def test_group_state_event_off_preserves_member_levels(monkeypatch):
-    from plejd.const import CMD_GROUP_STATE_AND_LEVEL
-    from plejd.protocol import Command
+    from plejd_cloud.const import CMD_GROUP_STATE_AND_LEVEL
+    from plejd_cloud.protocol import Command
 
     c = await _connected_coordinator_with_room(monkeypatch)
     c._on_event(Command(address=14, command_type=0x10, command=CMD_GROUP_STATE_AND_LEVEL, data=bytes([1, 0, 200])))
@@ -510,8 +510,8 @@ async def test_group_state_event_off_preserves_member_levels(monkeypatch):
 
 
 async def test_group_state_event_for_unknown_group_address_is_ignored(monkeypatch):
-    from plejd.const import CMD_GROUP_STATE_AND_LEVEL
-    from plejd.protocol import Command
+    from plejd_cloud.const import CMD_GROUP_STATE_AND_LEVEL
+    from plejd_cloud.protocol import Command
 
     c = await _connected_coordinator_with_room(monkeypatch)
     c._on_event(Command(address=99, command_type=0x10, command=CMD_GROUP_STATE_AND_LEVEL, data=bytes([1, 0, 200])))
@@ -519,8 +519,8 @@ async def test_group_state_event_for_unknown_group_address_is_ignored(monkeypatc
 
 
 async def test_group_state_event_with_short_payload_is_ignored(monkeypatch):
-    from plejd.const import CMD_GROUP_STATE_AND_LEVEL
-    from plejd.protocol import Command
+    from plejd_cloud.const import CMD_GROUP_STATE_AND_LEVEL
+    from plejd_cloud.protocol import Command
 
     c = await _connected_coordinator_with_room(monkeypatch)
     c._on_event(Command(address=14, command_type=0x10, command=CMD_GROUP_STATE_AND_LEVEL, data=bytes([1])))
@@ -528,8 +528,8 @@ async def test_group_state_event_with_short_payload_is_ignored(monkeypatch):
 
 
 def test_button_event_dispatches_press_and_release():
-    from plejd.const import CMD_INPUT_BUTTON
-    from plejd.protocol import Command
+    from plejd_cloud.const import CMD_INPUT_BUTTON
+    from plejd_cloud.protocol import Command
 
     c = PlejdCoordinator(_hass(), _entry())
     events = []
@@ -579,8 +579,8 @@ async def test_initial_state_read_one_per_address(monkeypatch):
     # one output-state read per unique non-None address (addr 5); None address + duplicate skipped.
     # (Other DATA reads after connect — dimmable-settings, boot-state, the NotifyEvents health
     # poll — use different opcodes and are filtered out below.)
-    from plejd.const import CMD_OUTPUT_STATE_AND_LEVEL
-    from plejd.protocol import TYPE_READ, decode_command
+    from plejd_cloud.const import CMD_OUTPUT_STATE_AND_LEVEL
+    from plejd_cloud.protocol import TYPE_READ, decode_command
 
     reads = [
         cmd
@@ -604,7 +604,7 @@ async def test_read_all_settings_noop_without_mesh():
 
 async def test_settings_short_reply_ignored_for_all_commands(monkeypatch):
     """val-is-None guard returns early for every settings command on short data."""
-    from plejd.const import (
+    from plejd_cloud.const import (
         CMD_OUTPUT_BOOT_STATE,
         CMD_OUTPUT_CURVE_TYPE,
         CMD_OUTPUT_MAX_LEVEL,
@@ -612,7 +612,7 @@ async def test_settings_short_reply_ignored_for_all_commands(monkeypatch):
         CMD_OUTPUT_RELAY_OFF_TIME,
         CMD_OUTPUT_SPEED,
     )
-    from plejd.protocol import Command
+    from plejd_cloud.protocol import Command
 
     client = _FakeClient()
     _patch_connect(monkeypatch, client)
@@ -849,7 +849,7 @@ def _gateway_entry():
 
 
 async def test_gateway_is_preferred_and_routes_commands(monkeypatch):
-    from plejd.protocol import OutputState, set_group_state_and_level
+    from plejd_cloud.protocol import OutputState, set_group_state_and_level
 
     monkeypatch.setattr(coordinator_mod, "PlejdGatewayConnection", _FakeGateway)
     hass = _hass()
@@ -867,7 +867,7 @@ async def test_gateway_off_preserves_prior_level_despite_ack_landing_before_writ
     # Over the real gateway transport, a published ack is decoded into state_for() before
     # write()'s own await returns - reading "prior level" only after the write would already
     # see this command's own echo (off, level 0), losing the real remembered brightness.
-    from plejd.protocol import OutputState
+    from plejd_cloud.protocol import OutputState
 
     monkeypatch.setattr(coordinator_mod, "PlejdGatewayConnection", _FakeGateway)
     hass = _hass()
@@ -892,7 +892,7 @@ async def test_gateway_set_output_does_not_overwrite_a_real_push_that_arrived_mi
     # write is still in flight; that push already lands in state_for() (and already notified
     # listeners via _on_event) before write() returns. Our own optimistic record must not
     # then stomp that real, newer value with the one we merely intended to command.
-    from plejd.protocol import OutputState
+    from plejd_cloud.protocol import OutputState
 
     monkeypatch.setattr(coordinator_mod, "PlejdGatewayConnection", _FakeGateway)
     hass = _hass()
@@ -926,7 +926,7 @@ async def test_gateway_set_output_still_applies_its_own_state_when_nothing_else_
 
 
 async def test_gateway_set_group_output_reflects_member_state(monkeypatch):
-    from plejd.protocol import set_group_state_and_level
+    from plejd_cloud.protocol import set_group_state_and_level
 
     monkeypatch.setattr(coordinator_mod, "PlejdGatewayConnection", _FakeGateway)
     hass = _hass()
@@ -940,8 +940,8 @@ async def test_gateway_set_group_output_reflects_member_state(monkeypatch):
 
 
 async def test_gateway_connect_starts_fault_polling(monkeypatch):
-    from plejd.const import CMD_NOTIFY_EVENTS
-    from plejd.protocol import decode_command
+    from plejd_cloud.const import CMD_NOTIFY_EVENTS
+    from plejd_cloud.protocol import decode_command
 
     monkeypatch.setattr(coordinator_mod, "PlejdGatewayConnection", _FakeGateway)
     hass = _hass()
@@ -954,8 +954,8 @@ async def test_gateway_connect_starts_fault_polling(monkeypatch):
 
 
 async def test_gateway_pushes_route_notify_events_to_faults(monkeypatch):
-    from plejd.const import CMD_NOTIFY_EVENTS
-    from plejd.protocol import Command
+    from plejd_cloud.const import CMD_NOTIFY_EVENTS
+    from plejd_cloud.protocol import Command
 
     monkeypatch.setattr(coordinator_mod, "PlejdGatewayConnection", _FakeGateway)
     hass = _hass()
@@ -984,7 +984,7 @@ async def test_gateway_failure_falls_back_to_ble(monkeypatch):
 
 async def test_gateway_auth_failure_raises_reauth(monkeypatch):
     from homeassistant.exceptions import ConfigEntryAuthFailed
-    from plejd.cloud import PlejdAuthError
+    from plejd_cloud.cloud import PlejdAuthError
 
     class _AuthFailGateway(_FakeGateway):
         async def connect(self):
@@ -1072,8 +1072,8 @@ async def test_shutdown_disconnects_gateway(monkeypatch):
 
 
 async def test_set_climate_commands(monkeypatch):
-    from plejd.const import CMD_TRM_MODE, CMD_TRM_SETPOINT
-    from plejd.protocol import decode_command
+    from plejd_cloud.const import CMD_TRM_MODE, CMD_TRM_SETPOINT
+    from plejd_cloud.protocol import decode_command
 
     client = _FakeClient()
     _patch_connect(monkeypatch, client)
@@ -1088,8 +1088,8 @@ async def test_set_climate_commands(monkeypatch):
 
 
 def test_motion_event_dispatches_to_listeners():
-    from plejd.const import CMD_OUTPUT_SET
-    from plejd.protocol import Command
+    from plejd_cloud.const import CMD_OUTPUT_SET
+    from plejd_cloud.protocol import Command
 
     # entry with a motion sensor at address 33
     entry = types.SimpleNamespace(
@@ -1112,8 +1112,8 @@ def test_motion_event_dispatches_to_listeners():
 
 
 async def test_cover_commands(monkeypatch):
-    from plejd.const import CMD_OUTPUT_SET
-    from plejd.protocol import decode_command
+    from plejd_cloud.const import CMD_OUTPUT_SET
+    from plejd_cloud.protocol import decode_command
 
     client = _FakeClient()
     _patch_connect(monkeypatch, client)
@@ -1130,13 +1130,13 @@ async def test_cover_commands(monkeypatch):
 
 
 async def test_dim_level_settings(monkeypatch):
-    from plejd.const import (
+    from plejd_cloud.const import (
         CMD_OUTPUT_MAX_LEVEL,
         CMD_OUTPUT_MIN_LEVEL,
         CMD_OUTPUT_SPEED,
         CMD_OUTPUT_START_LEVEL,
     )
-    from plejd.protocol import decode_command
+    from plejd_cloud.protocol import decode_command
 
     client = _FakeClient()
     _patch_connect(monkeypatch, client)
@@ -1172,8 +1172,8 @@ def _expected_clock_bytes():
 
 
 async def test_clock_synced_on_connect(monkeypatch):
-    from plejd.const import CMD_SYSTEM_TIME
-    from plejd.protocol import decode_command
+    from plejd_cloud.const import CMD_SYSTEM_TIME
+    from plejd_cloud.protocol import decode_command
 
     client = _FakeClient()
     _patch_connect(monkeypatch, client)
@@ -1203,8 +1203,8 @@ async def test_periodic_sync_and_shutdown_cancels(monkeypatch):
 
 
 async def test_program_and_remove_time_event(monkeypatch):
-    from plejd.const import CMD_TIME_EVENT_SCENE, CMD_TIME_EVENT_TIME, CMD_TIME_EVENT_TYPE
-    from plejd.protocol import decode_command
+    from plejd_cloud.const import CMD_TIME_EVENT_SCENE, CMD_TIME_EVENT_TIME, CMD_TIME_EVENT_TYPE
+    from plejd_cloud.protocol import decode_command
 
     client = _FakeClient()
     _patch_connect(monkeypatch, client)
@@ -1239,8 +1239,8 @@ async def test_clock_sync_failures_are_logged_not_raised(monkeypatch):
 
 
 async def test_dimmer_tuning_settings(monkeypatch):
-    from plejd.const import CMD_OUTPUT_CURVE_TYPE, CMD_OUTPUT_PHASE_DIM_TYPE
-    from plejd.protocol import decode_command
+    from plejd_cloud.const import CMD_OUTPUT_CURVE_TYPE, CMD_OUTPUT_PHASE_DIM_TYPE
+    from plejd_cloud.protocol import decode_command
 
     client = _FakeClient()
     _patch_connect(monkeypatch, client)
@@ -1261,8 +1261,8 @@ async def test_dimmer_tuning_settings(monkeypatch):
 
 async def test_local_write_cache_survives_unrelated_ble_notification(monkeypatch):
     """A stale BLE reply for a different field must not clobber a just-written setting."""
-    from plejd.const import CMD_OUTPUT_MIN_LEVEL
-    from plejd.protocol import Command
+    from plejd_cloud.const import CMD_OUTPUT_MIN_LEVEL
+    from plejd_cloud.protocol import Command
 
     client = _FakeClient()
     _patch_connect(monkeypatch, client)
@@ -1284,8 +1284,8 @@ def test_settings_for_returns_none_before_connect():
 
 async def test_settings_read_on_ble_connect(monkeypatch):
     """Connect issues READ requests for each dimmable output's settings."""
-    from plejd.const import CMD_OUTPUT_CURVE_TYPE, CMD_OUTPUT_MAX_LEVEL, CMD_OUTPUT_MIN_LEVEL, CMD_OUTPUT_SPEED
-    from plejd.protocol import TYPE_READ, decode_command
+    from plejd_cloud.const import CMD_OUTPUT_CURVE_TYPE, CMD_OUTPUT_MAX_LEVEL, CMD_OUTPUT_MIN_LEVEL, CMD_OUTPUT_SPEED
+    from plejd_cloud.protocol import TYPE_READ, decode_command
 
     client = _FakeClient()
     _patch_connect(monkeypatch, client)
@@ -1313,8 +1313,8 @@ async def test_settings_read_on_ble_connect(monkeypatch):
 
 async def test_settings_stored_on_event_and_listener_notified(monkeypatch):
     """_on_event for a settings reply stores the value and fires listeners."""
-    from plejd.const import CMD_OUTPUT_MIN_LEVEL
-    from plejd.protocol import Command
+    from plejd_cloud.const import CMD_OUTPUT_MIN_LEVEL
+    from plejd_cloud.protocol import Command
 
     client = _FakeClient()
     _patch_connect(monkeypatch, client)
@@ -1336,8 +1336,8 @@ async def test_settings_ignores_write_echo_not_a_read_reply(monkeypatch):
     """A write (TYPE_DONT_RESPOND) echoed back on the same feed must not be decoded as a
     reply — it carries [output, value...], not the reply's value-only bytes, and would
     corrupt the cache with a bogus value."""
-    from plejd.const import CMD_OUTPUT_MIN_LEVEL
-    from plejd.protocol import TYPE_DONT_RESPOND, Command
+    from plejd_cloud.const import CMD_OUTPUT_MIN_LEVEL
+    from plejd_cloud.protocol import TYPE_DONT_RESPOND, Command
 
     client = _FakeClient()
     _patch_connect(monkeypatch, client)
@@ -1352,7 +1352,7 @@ async def test_settings_ignores_write_echo_not_a_read_reply(monkeypatch):
 
 async def test_settings_all_commands_stored(monkeypatch):
     """All settings command codes are stored in _output_settings."""
-    from plejd.const import (
+    from plejd_cloud.const import (
         CMD_OUTPUT_BOOT_STATE,
         CMD_OUTPUT_CURVE_TYPE,
         CMD_OUTPUT_INRUSH_CURRENT,
@@ -1363,7 +1363,7 @@ async def test_settings_all_commands_stored(monkeypatch):
         CMD_OUTPUT_RELAY_OFF_TIME,
         CMD_OUTPUT_SPEED,
     )
-    from plejd.protocol import Command
+    from plejd_cloud.protocol import Command
 
     client = _FakeClient()
     _patch_connect(monkeypatch, client)
@@ -1404,8 +1404,8 @@ async def test_settings_all_commands_stored(monkeypatch):
 
 async def test_settings_short_reply_ignored(monkeypatch):
     """A too-short settings reply is silently dropped."""
-    from plejd.const import CMD_OUTPUT_MIN_LEVEL
-    from plejd.protocol import Command
+    from plejd_cloud.const import CMD_OUTPUT_MIN_LEVEL
+    from plejd_cloud.protocol import Command
 
     client = _FakeClient()
     _patch_connect(monkeypatch, client)
@@ -1418,7 +1418,7 @@ async def test_settings_short_reply_ignored(monkeypatch):
 
 
 def test_settings_from_cloud_with_values():
-    from plejd.coordinator import _settings_from_cloud
+    from plejd_cloud.coordinator import _settings_from_cloud
 
     s = _settings_from_cloud({"minDim": 32767, "maxDim": 65535, "dimCurve": 1})
     assert s is not None
@@ -1428,7 +1428,7 @@ def test_settings_from_cloud_with_values():
 
 
 def test_settings_from_cloud_empty_returns_none():
-    from plejd.coordinator import _settings_from_cloud
+    from plejd_cloud.coordinator import _settings_from_cloud
 
     assert _settings_from_cloud({}) is None
 
@@ -1448,8 +1448,8 @@ def test_coordinator_pre_populates_from_cloud_output_settings():
 
 async def test_relay_off_time_read_on_ble_connect(monkeypatch):
     """Devices in RELAY_HARDWARE get a relay-off-time READ issued during connect."""
-    from plejd.const import CMD_OUTPUT_RELAY_OFF_TIME
-    from plejd.protocol import TYPE_READ, decode_command
+    from plejd_cloud.const import CMD_OUTPUT_RELAY_OFF_TIME
+    from plejd_cloud.protocol import TYPE_READ, decode_command
 
     relay_dev = {**_DEV, "hardware_id": 3, "model": "CTR-01", "dimmable": False}
     client = _FakeClient()
@@ -1470,8 +1470,8 @@ async def test_relay_off_time_read_on_ble_connect(monkeypatch):
 
 async def test_boot_state_and_relay_off_time_setters(monkeypatch):
     """async_set_output_boot_state and async_set_output_relay_off_time write correct vectors."""
-    from plejd.const import CMD_OUTPUT_BOOT_STATE, CMD_OUTPUT_RELAY_OFF_TIME
-    from plejd.protocol import decode_command
+    from plejd_cloud.const import CMD_OUTPUT_BOOT_STATE, CMD_OUTPUT_RELAY_OFF_TIME
+    from plejd_cloud.protocol import decode_command
 
     client = _FakeClient()
     _patch_connect(monkeypatch, client)
@@ -1495,8 +1495,8 @@ async def test_boot_state_and_relay_off_time_setters(monkeypatch):
 
 async def test_relay_config_and_inrush_setters(monkeypatch):
     """async_set_output_relay_config and async_set_output_inrush_current write correct vectors."""
-    from plejd.const import CMD_OUTPUT_INRUSH_CURRENT, CMD_OUTPUT_RELAY_CONFIG
-    from plejd.protocol import decode_command
+    from plejd_cloud.const import CMD_OUTPUT_INRUSH_CURRENT, CMD_OUTPUT_RELAY_CONFIG
+    from plejd_cloud.protocol import decode_command
 
     client = _FakeClient()
     _patch_connect(monkeypatch, client)
@@ -1520,8 +1520,8 @@ async def test_relay_config_and_inrush_setters(monkeypatch):
 
 async def test_relay_config_hardware_read_during_connect(monkeypatch):
     """Devices in RELAY_CONFIG_HARDWARE get a relay-config READ issued during connect."""
-    from plejd.const import CMD_OUTPUT_RELAY_CONFIG
-    from plejd.protocol import TYPE_READ, decode_command
+    from plejd_cloud.const import CMD_OUTPUT_RELAY_CONFIG
+    from plejd_cloud.protocol import TYPE_READ, decode_command
 
     relay_config_dev = {**_DEV, "hardware_id": 11, "model": "DIM-01-2P"}
     client = _FakeClient()
@@ -1542,8 +1542,8 @@ async def test_relay_config_hardware_read_during_connect(monkeypatch):
 
 async def test_relay_config_short_reply_ignored(monkeypatch):
     """An empty relay config reply is silently dropped."""
-    from plejd.const import CMD_OUTPUT_RELAY_CONFIG
-    from plejd.protocol import Command
+    from plejd_cloud.const import CMD_OUTPUT_RELAY_CONFIG
+    from plejd_cloud.protocol import Command
 
     client = _FakeClient()
     _patch_connect(monkeypatch, client)
@@ -1557,8 +1557,8 @@ async def test_relay_config_short_reply_ignored(monkeypatch):
 
 async def test_inrush_current_short_reply_ignored(monkeypatch):
     """A too-short inrush current reply is silently dropped."""
-    from plejd.const import CMD_OUTPUT_INRUSH_CURRENT
-    from plejd.protocol import Command
+    from plejd_cloud.const import CMD_OUTPUT_INRUSH_CURRENT
+    from plejd_cloud.protocol import Command
 
     client = _FakeClient()
     _patch_connect(monkeypatch, client)
@@ -1571,8 +1571,8 @@ async def test_inrush_current_short_reply_ignored(monkeypatch):
 
 
 def test_fault_event_routes_to_listeners():
-    from plejd.const import CMD_NOTIFY_EVENTS
-    from plejd.protocol import Command
+    from plejd_cloud.const import CMD_NOTIFY_EVENTS
+    from plejd_cloud.protocol import Command
 
     c = PlejdCoordinator(_hass(), _entry())
     seen = []
@@ -1615,7 +1615,7 @@ def _fake_site(
     devices=None, gateways=None, resource_set_id=None, device_addresses=None, rooms=None, motion=None, malformed=None
 ):
     """A PlejdCloudSite-like object matching _DEV by default (no change)."""
-    from plejd.cloud import PlejdCloudSite
+    from plejd_cloud.cloud import PlejdCloudSite
 
     return PlejdCloudSite(
         site_id="S1",
@@ -1624,7 +1624,7 @@ def _fake_site(
         mesh_key="AA-BB-CC-DD",
         devices=devices
         if devices is not None
-        else [__import__("plejd.cloud", fromlist=["PlejdCloudDevice"]).PlejdCloudDevice(**_DEV)],
+        else [__import__("plejd_cloud.cloud", fromlist=["PlejdCloudDevice"]).PlejdCloudDevice(**_DEV)],
         inputs=[],
         motion=motion or [],
         scenes=[],
@@ -1663,7 +1663,7 @@ async def test_cloud_poll_no_change_does_nothing(monkeypatch):
 
 
 async def test_cloud_poll_device_added_reloads(monkeypatch):
-    from plejd.cloud import PlejdCloudDevice
+    from plejd_cloud.cloud import PlejdCloudDevice
 
     new_dev = PlejdCloudDevice(**{**_DEV, "device_id": "d2", "name": "Matbord", "address": 9})
 
@@ -1697,7 +1697,7 @@ async def test_cloud_poll_reverts_and_logs_when_reload_is_rejected(monkeypatch, 
     # already matching the fresh site would make every later poll's comparison find no
     # difference and never retry, stranding the running coordinator (which never actually
     # got the new data live) stale indefinitely. Revert instead, so the next poll retries.
-    from plejd.cloud import PlejdCloudDevice
+    from plejd_cloud.cloud import PlejdCloudDevice
 
     new_dev = PlejdCloudDevice(**{**_DEV, "device_id": "d2", "name": "Matbord", "address": 9})
     original_devices = list(_cloud_poll_entry().data[CONF_DEVICES])
@@ -1729,7 +1729,7 @@ async def test_cloud_poll_reverts_and_logs_when_reload_is_rejected(monkeypatch, 
 async def test_cloud_poll_reverts_and_logs_when_reload_raises(monkeypatch, caplog):
     # async_reload() can raise instead of just returning False - must be treated the same
     # as a rejected reload (revert + log), not let the exception skip the revert entirely.
-    from plejd.cloud import PlejdCloudDevice
+    from plejd_cloud.cloud import PlejdCloudDevice
 
     new_dev = PlejdCloudDevice(**{**_DEV, "device_id": "d2", "name": "Matbord", "address": 9})
     original_devices = list(_cloud_poll_entry().data[CONF_DEVICES])
@@ -1793,7 +1793,7 @@ async def test_cloud_poll_skips_a_wrong_typed_response_without_raising(monkeypat
     # End-to-end over the real parse_site (not _fake_site): a wrong-typed, non-empty
     # collection must reach the poll as a flagged site and be skipped, not blow up mid-parse
     # with an AttributeError the poll's narrow except clause would let escape.
-    from plejd.cloud import parse_site
+    from plejd_cloud.cloud import parse_site
 
     async def _login(session, email, password):
         return "TOKEN"
@@ -1860,7 +1860,7 @@ async def test_cloud_poll_resets_forced_transport_when_gateway_disappears(monkey
     # Mirrors manage_device.py's own device-removal refresh: a forced TRANSPORT_GATEWAY
     # preference must be dropped when the gateway disappears, or the coordinator gets stuck
     # raising ConfigEntryNotReady forever instead of falling back to BLE.
-    from plejd.const import TRANSPORT_AUTO, TRANSPORT_GATEWAY
+    from plejd_cloud.const import TRANSPORT_AUTO, TRANSPORT_GATEWAY
 
     async def _login(session, email, password):
         return "TOKEN"
@@ -1895,9 +1895,9 @@ async def test_cloud_poll_merges_options_read_after_acquiring_the_lock(monkeypat
     # waits, persisting its own options change. The poll must merge onto entry.options as
     # they are AFTER acquiring the lock, or it writes back a pre-lock copy and permanently
     # discards that change.
-    from plejd import schedule_ws
-    from plejd.cloud import PlejdCloudDevice
-    from plejd.const import TRANSPORT_AUTO
+    from plejd_cloud import schedule_ws
+    from plejd_cloud.cloud import PlejdCloudDevice
+    from plejd_cloud.const import TRANSPORT_AUTO
 
     new_dev = PlejdCloudDevice(**{**_DEV, "device_id": "d2", "name": "Matbord", "address": 9})
 
@@ -1939,8 +1939,8 @@ async def test_cloud_poll_skips_when_a_management_operation_landed_while_it_wait
     # A device/room/scene operation completing between this poll's fetch and its lock
     # acquisition writes a NEWER snapshot of the same keys. Applying the poll's older overlay
     # would revert what the user just did, so the poll skips and lets the next one re-fetch.
-    from plejd import schedule_ws
-    from plejd.cloud import PlejdCloudDevice
+    from plejd_cloud import schedule_ws
+    from plejd_cloud.cloud import PlejdCloudDevice
 
     new_dev = PlejdCloudDevice(**{**_DEV, "device_id": "d2", "name": "Matbord", "address": 9})
 
@@ -1982,8 +1982,8 @@ async def test_cloud_poll_does_not_roll_back_when_the_follow_up_reload_succeeded
     # The follow-up reload loads the entry with this poll's data already written, so a
     # success there means the sync IS live - rolling back on the first reload's failure would
     # undo a working state.
-    from plejd import schedule_ws
-    from plejd.cloud import PlejdCloudDevice
+    from plejd_cloud import schedule_ws
+    from plejd_cloud.cloud import PlejdCloudDevice
 
     new_dev = PlejdCloudDevice(**{**_DEV, "device_id": "d2", "name": "Matbord", "address": 9})
 
@@ -2025,7 +2025,7 @@ async def test_cloud_poll_reloads_the_reverted_snapshot_after_a_failed_setup(mon
     # coordinator (and its poll timer) is already gone - reverting the stored snapshot alone
     # would leave nothing loaded and nothing scheduled to ever retry. The revert must be
     # followed by a reload that brings the entry back on the known-good data.
-    from plejd.cloud import PlejdCloudDevice
+    from plejd_cloud.cloud import PlejdCloudDevice
 
     new_dev = PlejdCloudDevice(**{**_DEV, "device_id": "d2", "name": "Matbord", "address": 9})
 
@@ -2066,7 +2066,7 @@ async def test_cloud_poll_revert_keeps_a_concurrent_change(monkeypatch):
     # The revert restores only the keys this poll wrote, onto entry.data as it is now - a
     # wholesale write-back of the pre-reload snapshot would also undo an unrelated change
     # that landed while the (failed) reload was in flight.
-    from plejd.cloud import PlejdCloudDevice
+    from plejd_cloud.cloud import PlejdCloudDevice
 
     new_dev = PlejdCloudDevice(**{**_DEV, "device_id": "d2", "name": "Matbord", "address": 9})
 
@@ -2106,7 +2106,7 @@ async def test_cloud_poll_revert_drops_a_key_it_introduced_and_restores_the_old_
     # A gateway newly appearing seeds CONF_INSTALLATION_ID, a key that did not exist before
     # this poll - reverting must remove it rather than leave a None behind, and must put back
     # the transport option's previous value (not just delete it).
-    from plejd.const import TRANSPORT_AUTO
+    from plejd_cloud.const import TRANSPORT_AUTO
 
     async def _login(session, email, password):
         return "TOKEN"
@@ -2150,8 +2150,8 @@ async def test_cloud_poll_skips_when_shut_down_while_waiting_for_the_lock(monkey
     # Waiting for the lock is an await point, so the holder's reload (or an independent
     # unload) can shut this coordinator down meanwhile - the interval unsubscribe cannot stop
     # an already-running callback. Writing then would reload the entry after our own teardown.
-    from plejd import schedule_ws
-    from plejd.cloud import PlejdCloudDevice
+    from plejd_cloud import schedule_ws
+    from plejd_cloud.cloud import PlejdCloudDevice
 
     new_dev = PlejdCloudDevice(**{**_DEV, "device_id": "d2", "name": "Matbord", "address": 9})
 
@@ -2190,7 +2190,7 @@ async def test_cloud_poll_skips_when_shut_down_while_waiting_for_the_lock(monkey
 async def test_cloud_poll_revert_removes_a_transport_option_it_introduced(monkeypatch):
     # The entry had no CONF_TRANSPORT at all; this poll wrote one. Reverting must remove it
     # again rather than leave a value the user never chose.
-    from plejd.cloud import PlejdCloudDevice
+    from plejd_cloud.cloud import PlejdCloudDevice
 
     new_dev = PlejdCloudDevice(**{**_DEV, "device_id": "d2", "name": "Matbord", "address": 9})
 
@@ -2232,7 +2232,7 @@ async def test_cloud_poll_revert_leaves_a_newer_edit_alone(monkeypatch):
     # Reconfigure and the options flow do not take this integration-specific lock, so a newer
     # edit to a site-derived key can land after this poll wrote it. The rollback must restore
     # only keys whose current value is still what this poll wrote.
-    from plejd.cloud import PlejdCloudDevice
+    from plejd_cloud.cloud import PlejdCloudDevice
 
     new_dev = PlejdCloudDevice(**{**_DEV, "device_id": "d2", "name": "Matbord", "address": 9})
 
@@ -2272,7 +2272,7 @@ async def test_cloud_poll_discards_the_cached_grant_when_the_gateway_is_replaced
     # A cached resourceSetId belongs to the gateway it was issued for. Copying it onto a
     # replacement gateway would keep has_gateway true and rebuild the connection with an
     # obsolete grant forever, since every later poll would see the same cached value.
-    from plejd.const import TRANSPORT_AUTO, TRANSPORT_GATEWAY
+    from plejd_cloud.const import TRANSPORT_AUTO, TRANSPORT_GATEWAY
 
     async def _login(session, email, password):
         return "TOKEN"
@@ -2313,7 +2313,7 @@ async def test_cloud_poll_keeps_the_cached_resource_set_id_when_the_gateway_omit
     # A response that still lists the gateway but drops its resourceSetId must not be read
     # as "the gateway is gone" - overwriting the cached id with None would take a
     # gateway-only install offline for a whole poll interval (24h).
-    from plejd.const import TRANSPORT_GATEWAY
+    from plejd_cloud.const import TRANSPORT_GATEWAY
 
     async def _login(session, email, password):
         return "TOKEN"
@@ -2352,7 +2352,7 @@ async def test_cloud_poll_preserves_an_explicit_ble_preference_without_a_gateway
     # Only a now-impossible gateway-only preference may be reset when there's no usable
     # gateway - an explicit BLE choice is still valid, and silently downgrading it to AUTO
     # would let a gateway added later start being used on its own.
-    from plejd.const import TRANSPORT_BLE
+    from plejd_cloud.const import TRANSPORT_BLE
 
     async def _login(session, email, password):
         return "TOKEN"
@@ -2385,7 +2385,7 @@ async def test_cloud_poll_preserves_forced_transport_on_a_malformed_gateway_snap
     # resourceSetId missing/wrong type) must not reset a forced TRANSPORT_GATEWAY
     # preference - the whole poll is skipped, so the user's choice survives until a
     # well-formed response actually confirms the gateway is gone.
-    from plejd.const import TRANSPORT_GATEWAY
+    from plejd_cloud.const import TRANSPORT_GATEWAY
 
     async def _login(session, email, password):
         return "TOKEN"
@@ -2448,8 +2448,8 @@ async def test_cloud_poll_runs_a_follow_up_reload_for_a_concurrent_change(monkey
     # _async_reload_entry marks DATA_RELOAD_PENDING when it suppressed its own reload for
     # a concurrent, unrelated change while this poll's reload was in flight - that change
     # must still get a reload once ours is done, not be dropped.
-    from plejd import schedule_ws
-    from plejd.cloud import PlejdCloudDevice
+    from plejd_cloud import schedule_ws
+    from plejd_cloud.cloud import PlejdCloudDevice
 
     new_dev = PlejdCloudDevice(**{**_DEV, "device_id": "d2", "name": "Matbord", "address": 9})
 
@@ -2490,8 +2490,8 @@ async def test_cloud_poll_logs_when_the_follow_up_reload_raises(monkeypatch, cap
     # and swallowed (it's a best-effort reload for someone else's change), not propagated
     # out of this poll and not treated as this poll's own reload having failed. It also
     # must not be dropped for good: leaving it pending lets a later reload retry it.
-    from plejd import schedule_ws
-    from plejd.cloud import PlejdCloudDevice
+    from plejd_cloud import schedule_ws
+    from plejd_cloud.cloud import PlejdCloudDevice
 
     new_dev = PlejdCloudDevice(**{**_DEV, "device_id": "d2", "name": "Matbord", "address": 9})
 
@@ -2584,7 +2584,7 @@ async def test_cloud_poll_persists_device_addresses(monkeypatch):
 
 
 async def test_cloud_poll_auth_error_starts_reauth(monkeypatch):
-    from plejd.cloud import PlejdAuthError
+    from plejd_cloud.cloud import PlejdAuthError
 
     async def _login(session, email, password):
         raise PlejdAuthError("bad creds")
@@ -2624,7 +2624,7 @@ async def test_cloud_poll_entry_gone_does_nothing(monkeypatch):
 
 
 async def test_cloud_poll_cloud_error_skips_reload(monkeypatch):
-    from plejd.cloud import PlejdCloudError
+    from plejd_cloud.cloud import PlejdCloudError
 
     async def _login(session, email, password):
         raise PlejdCloudError("unreachable")
@@ -2802,7 +2802,7 @@ async def test_start_preserves_the_original_not_ready_when_self_heal_raises(monk
 async def test_cloud_poll_persists_rooms(monkeypatch):
     from dataclasses import asdict
 
-    from plejd.cloud import PlejdCloudRoom
+    from plejd_cloud.cloud import PlejdCloudRoom
 
     room = PlejdCloudRoom(
         room_id="r1", name="Kok", address=100, member_addresses=[5], dimmable=True, dimmable_addresses=[5]
@@ -2835,7 +2835,7 @@ async def test_cloud_poll_persists_rooms(monkeypatch):
 
 
 async def test_cloud_poll_discards_result_after_shutdown(monkeypatch):
-    from plejd.cloud import PlejdCloudDevice
+    from plejd_cloud.cloud import PlejdCloudDevice
 
     async def _login(session, email, password):
         return "TOKEN"
@@ -2865,7 +2865,7 @@ async def test_cloud_poll_discards_result_after_shutdown(monkeypatch):
 
 
 async def test_cloud_poll_auth_error_after_shutdown_does_not_start_reauth(monkeypatch):
-    from plejd.cloud import PlejdAuthError
+    from plejd_cloud.cloud import PlejdAuthError
 
     async def _login(session, email, password):
         c._closed = True
@@ -2889,7 +2889,7 @@ async def test_cloud_poll_auth_error_after_shutdown_does_not_start_reauth(monkey
 
 
 def _fw_site(firmware_by_device):
-    from plejd.cloud import PlejdDeviceFirmware
+    from plejd_cloud.cloud import PlejdDeviceFirmware
 
     fw = {
         device_id: PlejdDeviceFirmware(version=v, build_time=bt, hardware_id=hw, faceplate_id=face)
@@ -3072,8 +3072,8 @@ def _reg_event(action="update", changes=None, device_id="ha1"):
 
 
 def test_output_parse_id_picks_lowest_output_index():
-    from plejd.cloud import PlejdCloudDevice
-    from plejd.coordinator import PlejdCoordinator
+    from plejd_cloud.cloud import PlejdCloudDevice
+    from plejd_cloud.coordinator import PlejdCoordinator
 
     def _dev(output_index, object_id):
         return PlejdCloudDevice(
@@ -3116,7 +3116,7 @@ async def test_rename_device_calls_cloud(monkeypatch):
 
 async def test_rename_device_falls_back_to_cloud_lookup(monkeypatch):
     # entries cached before object_id existed (e.g. _DEV) resolve it from a fresh site fetch
-    from plejd.cloud import PlejdCloudDevice
+    from plejd_cloud.cloud import PlejdCloudDevice
 
     c = PlejdCoordinator(_hass(), _cloud_entry())  # _DEV has no object_id
     fresh = PlejdCloudDevice(
@@ -3181,7 +3181,7 @@ async def test_rename_device_skips_without_credentials(monkeypatch):
 
 
 async def test_device_rename_already_done_by_the_dashboard_is_not_mirrored_again(monkeypatch):
-    from plejd.const import DOMAIN
+    from plejd_cloud.const import DOMAIN
 
     c = PlejdCoordinator(_hass(), _cloud_entry())
     device = types.SimpleNamespace(identifiers={(DOMAIN, "d1")}, name_by_user="Kitchen")
@@ -3262,7 +3262,7 @@ async def test_rename_device_raises_when_cloud_rejects(monkeypatch):
 
 
 async def test_registry_update_mirrors_rename(monkeypatch):
-    from plejd.const import DOMAIN
+    from plejd_cloud.const import DOMAIN
 
     hass = _hass()
     c = PlejdCoordinator(hass, _cloud_entry())
@@ -3289,7 +3289,7 @@ async def test_registry_update_ignores_non_rename_events(monkeypatch):
 
 
 async def test_registry_update_ignores_missing_device_and_non_plejd(monkeypatch):
-    from plejd.const import DOMAIN
+    from plejd_cloud.const import DOMAIN
 
     hass = _hass()
     c = PlejdCoordinator(hass, _cloud_entry())
@@ -3315,7 +3315,7 @@ async def test_registry_update_ignores_missing_device_and_non_plejd(monkeypatch)
 
 
 async def test_registry_update_ignores_room_pseudo_device(monkeypatch):
-    from plejd.const import DOMAIN, ROOM_DEVICE_ID_PREFIX
+    from plejd_cloud.const import DOMAIN, ROOM_DEVICE_ID_PREFIX
 
     hass = _hass()
     c = PlejdCoordinator(hass, _cloud_entry())
@@ -3329,7 +3329,7 @@ async def test_registry_update_ignores_room_pseudo_device(monkeypatch):
 
 
 async def test_registry_update_swallows_rename_errors(monkeypatch):
-    from plejd.const import DOMAIN
+    from plejd_cloud.const import DOMAIN
 
     hass = _hass()
     c = PlejdCoordinator(hass, _cloud_entry())
@@ -3343,7 +3343,7 @@ async def test_registry_update_swallows_rename_errors(monkeypatch):
 
 
 async def test_registry_update_triggers_reauth_on_auth_error(monkeypatch):
-    from plejd.const import DOMAIN
+    from plejd_cloud.const import DOMAIN
 
     hass = _hass()
     c = PlejdCoordinator(hass, _cloud_entry())
@@ -3360,8 +3360,8 @@ async def test_registry_update_triggers_reauth_on_auth_error(monkeypatch):
 
 
 async def test_poll_faults_reads_each_device(monkeypatch):
-    from plejd.const import CMD_NOTIFY_EVENTS
-    from plejd.protocol import TYPE_READ, decode_command
+    from plejd_cloud.const import CMD_NOTIFY_EVENTS
+    from plejd_cloud.protocol import TYPE_READ, decode_command
 
     client = _FakeClient()
     _patch_connect(monkeypatch, client)
@@ -3457,7 +3457,7 @@ async def test_poll_faults_resolves_rooms_from_cloud_when_entry_predates_room_gr
     """Entries added before CONF_ROOMS existed (missing key, not an empty list) backfill it via a cloud fetch."""
     from dataclasses import asdict
 
-    from plejd.cloud import PlejdCloudRoom
+    from plejd_cloud.cloud import PlejdCloudRoom
 
     entry = _cloud_entry()  # has credentials, CONF_ROOMS absent from entry.data
     c = PlejdCoordinator(_hass(), entry)
@@ -3552,7 +3552,7 @@ async def test_poll_faults_does_not_backfill_rooms_from_a_malformed_site(monkeyp
 
 @pytest.mark.parametrize("closed", [False, True])
 async def test_poll_faults_stops_backfilling_and_starts_reauth_on_rejected_credentials(monkeypatch, closed):
-    from plejd.cloud import PlejdAuthError
+    from plejd_cloud.cloud import PlejdAuthError
 
     entry = _cloud_entry()
     entry.data[CONF_ROOMS] = []
@@ -3660,7 +3660,7 @@ async def test_cloud_poll_raises_a_repair_issue_for_a_skipped_sync(monkeypatch):
 
 
 async def test_cloud_poll_clears_the_repair_issue_once_the_cloud_recovers(monkeypatch):
-    from plejd.cloud import PlejdCloudDevice
+    from plejd_cloud.cloud import PlejdCloudDevice
 
     responses = [_fake_site(malformed=["devices"]), _fake_site()]
 
@@ -3714,7 +3714,7 @@ async def test_cloud_poll_clears_a_repair_issue_that_outlived_a_restart(monkeypa
         async_reload=AsyncMock(return_value=True),
     )
     # what a restart looks like: the persisted issue survived, hass.data did not
-    hass.created_issues = {"malformed_cloud_site_e1": {"domain": "plejd"}}
+    hass.created_issues = {"malformed_cloud_site_e1": {"domain": "plejd_cloud"}}
 
     await PlejdCoordinator(hass, entry)._async_poll_cloud(None)
 
@@ -3750,7 +3750,7 @@ async def test_self_heal_cooldown_is_held_through_an_auth_failure(monkeypatch):
     # Until the user actually completes reauth the credentials stay bad, so releasing the
     # cooldown here would let every setup retry call async_login again - exactly the stream
     # of cloud logins the cooldown exists to prevent. The successful reauth path clears it.
-    from plejd.cloud import PlejdAuthError
+    from plejd_cloud.cloud import PlejdAuthError
 
     async def _login(session, email, password):
         raise PlejdAuthError("bad creds")
@@ -3798,8 +3798,8 @@ async def test_self_heal_cooldown_survives_a_backwards_wall_clock_step(monkeypat
 
 
 def _origin_coordinator(monkeypatch, clock):
-    from plejd.cloud import PlejdCloudInput, PlejdCloudRoom
-    from plejd.protocol import Command
+    from plejd_cloud.cloud import PlejdCloudInput, PlejdCloudRoom
+    from plejd_cloud.protocol import Command
 
     monkeypatch.setattr(coordinator_mod.time, "monotonic", lambda: clock[0])
     c = PlejdCoordinator(_hass(), _entry())  # _DEV: output address 5, device d1
@@ -3835,7 +3835,7 @@ def test_toggle_origin_separate_remote_is_a_best_guess(monkeypatch):
 
 
 def test_toggle_origin_ignores_malformed_toggle_frames(monkeypatch):
-    from plejd.protocol import Command
+    from plejd_cloud.protocol import Command
 
     clock = [100.0]
     c, _ = _origin_coordinator(monkeypatch, clock)
@@ -3855,7 +3855,7 @@ def test_toggle_origin_since_ignores_commands_from_before(monkeypatch):
 
 
 def test_toggle_origin_only_counts_commands_for_the_resulting_state(monkeypatch):
-    from plejd.protocol import Command
+    from plejd_cloud.protocol import Command
 
     clock = [100.0]
     c, _ = _origin_coordinator(monkeypatch, clock)
@@ -3897,8 +3897,8 @@ def test_toggle_origin_ignores_old_commands_and_unknown_addresses(monkeypatch):
 def test_toggle_origin_scene_and_motion(monkeypatch):
     import dataclasses
 
-    from plejd.cloud import PlejdCloudMotion, PlejdCloudScene
-    from plejd.protocol import Command
+    from plejd_cloud.cloud import PlejdCloudMotion, PlejdCloudScene
+    from plejd_cloud.protocol import Command
 
     clock = [100.0]
     c, _ = _origin_coordinator(monkeypatch, clock)
@@ -3934,8 +3934,8 @@ def test_toggle_origin_scene_and_motion(monkeypatch):
 def test_toggle_origin_since_also_applies_to_scenes_and_motion(monkeypatch):
     import dataclasses
 
-    from plejd.cloud import PlejdCloudMotion, PlejdCloudScene
-    from plejd.protocol import Command
+    from plejd_cloud.cloud import PlejdCloudMotion, PlejdCloudScene
+    from plejd_cloud.protocol import Command
 
     clock = [100.0]
     c, _ = _origin_coordinator(monkeypatch, clock)
@@ -3953,10 +3953,50 @@ def test_toggle_origin_since_also_applies_to_scenes_and_motion(monkeypatch):
 
 
 def test_toggle_origin_uses_a_standalone_motion_sensors_own_room(monkeypatch):
-    from plejd.cloud import PlejdCloudMotion
+    from plejd_cloud.cloud import PlejdCloudMotion
 
     clock = [100.0]
     c, _ = _origin_coordinator(monkeypatch, clock)
     c.motion = [PlejdCloudMotion("wms", "Hall motion", 33, room_id="r1")]  # no output entry for it at all
     c._recent_motion[33] = 99.0
     assert c.toggle_origin(5) == {"kind": "plejd_motion", "name": "Hall motion"}
+
+
+def _climate_coordinator():
+    entry = _entry()
+    trm = {**_DEV, "device_id": "t1", "name": "Bad", "address": 9, "outputs": [9], "hardware_id": 100}
+    entry.data[CONF_DEVICES] = [_DEV, {**trm, "model": "TRM-01", "category": "climate", "traits": 0x20}]
+    return PlejdCoordinator(_hass(), entry)
+
+
+def test_climate_state_for_decodes_the_output_state_report(monkeypatch):
+    from plejd_cloud.protocol import OutputState
+
+    c = _climate_coordinator()
+    # word 0x1C821: mode 7 (normal), target 32-10 = 22 °C, current 33-10 = 23 °C
+    monkeypatch.setattr(c, "state_for", lambda a: OutputState(output=a, on=True, level=0x21, raw_level=0x21C8))
+    state = c.climate_state_for(9)
+    assert (state.mode, state.target, state.current, state.heating) == (7, 22, 23, None)
+
+
+def test_climate_state_for_is_none_without_a_raw_level(monkeypatch):
+    from plejd_cloud.protocol import OutputState
+
+    c = _climate_coordinator()
+    assert c.climate_state_for(9) is None
+    monkeypatch.setattr(c, "state_for", lambda a: OutputState(output=a, on=True, level=0))
+    assert c.climate_state_for(9) is None
+
+
+def test_thermostat_report_records_heating_only_for_thermostats(monkeypatch):
+    from plejd_cloud.const import CMD_GROUP_STATE_AND_LEVEL
+    from plejd_cloud.protocol import Command, OutputState
+
+    c = _climate_coordinator()
+    c._on_event(
+        Command(address=9, command_type=0x10, command=CMD_GROUP_STATE_AND_LEVEL, data=bytes([1, 0xC8, 0x21, 0x80]))
+    )
+    c._on_event(Command(address=5, command_type=0x10, command=CMD_GROUP_STATE_AND_LEVEL, data=bytes([1, 0, 200, 0x80])))
+    assert c._climate_heating == {9: True}
+    monkeypatch.setattr(c, "state_for", lambda a: OutputState(output=a, on=True, level=0x21, raw_level=0x21C8))
+    assert c.climate_state_for(9).heating is True

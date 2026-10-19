@@ -5,9 +5,9 @@ from __future__ import annotations
 import types
 
 import pytest
-from plejd import schedule_ws
-from plejd.cloud import PlejdAuthError, PlejdCloudError, parse_astro_events
-from plejd.schedule_ws import DATA_ENTRY
+from plejd_cloud import schedule_ws
+from plejd_cloud.cloud import PlejdAuthError, PlejdCloudError, parse_astro_events
+from plejd_cloud.schedule_ws import DATA_ENTRY
 
 _EVENT = {
     "astroEventId": "ae1",

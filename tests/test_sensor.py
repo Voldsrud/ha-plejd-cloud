@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import types
 
-from plejd.cloud import PlejdCloudMotion
-from plejd.protocol import MotionEvent
-from plejd.sensor import PlejdConnectivitySensor, PlejdIlluminanceSensor, async_setup_entry
+from plejd_cloud.cloud import PlejdCloudMotion
+from plejd_cloud.protocol import MotionEvent
+from plejd_cloud.sensor import PlejdConnectivitySensor, PlejdIlluminanceSensor, async_setup_entry
 
 
 class _Coordinator:

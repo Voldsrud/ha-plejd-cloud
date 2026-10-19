@@ -6,7 +6,7 @@ import types
 
 import pytest
 from homeassistant.helpers import entity_registry as er
-from plejd.remote_profiles import (
+from plejd_cloud.remote_profiles import (
     DEVICE_KIND_DOOR_WINDOW,
     DEVICE_KIND_MOTION,
     DEVICE_KIND_REMOTE,

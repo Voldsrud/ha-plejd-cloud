@@ -213,7 +213,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         new_devices = async_scan_unprovisioned(hass)
         _LOGGER.info("Plejd scan found %d unprovisioned device(s)", len(new_devices))
         _LOGGER.debug("Plejd scan found unprovisioned device(s): %s", [d["address"] for d in new_devices])
-        hass.bus.async_fire(f"{DOMAIN}_new_devices_found", {"devices": new_devices})
+        # Public bus event name kept from upstream (not domain-derived) so documented automations still match.
+        hass.bus.async_fire("plejd_new_devices_found", {"devices": new_devices})
 
     async def _async_handle_all_off(call) -> None:
         # entry.runtime_data of the CURRENT entry, not a closed-over coordinator: this

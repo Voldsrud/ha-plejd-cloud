@@ -5,8 +5,8 @@ from __future__ import annotations
 import types
 
 from homeassistant.const import EntityCategory
-from plejd.cloud import PlejdCloudDevice
-from plejd.number import (
+from plejd_cloud.cloud import PlejdCloudDevice
+from plejd_cloud.number import (
     PlejdDimLevelNumber,
     PlejdInrushCurrentNumber,
     PlejdRelayOffTimeNumber,
@@ -146,7 +146,7 @@ async def test_no_restore_when_no_prior_state():
 async def test_live_read_arriving_during_restore_wins_over_stale_state():
     """A read reply landing while awaiting restore must win — the listener is subscribed
     first, and the settings cache is re-checked after the await."""
-    from plejd.protocol import OutputSettings
+    from plejd_cloud.protocol import OutputSettings
 
     coord = _Coordinator([])
     entity = PlejdDimLevelNumber(coord, _device(), "min")
@@ -161,7 +161,7 @@ async def test_live_read_arriving_during_restore_wins_over_stale_state():
 
 
 async def test_init_uses_coordinator_settings_min():
-    from plejd.protocol import OutputSettings
+    from plejd_cloud.protocol import OutputSettings
 
     settings = OutputSettings(min_level=20.0, max_level=90.0)
     entity = PlejdDimLevelNumber(_Coordinator([], settings=settings), _device(), "min")
@@ -170,7 +170,7 @@ async def test_init_uses_coordinator_settings_min():
 
 
 async def test_init_uses_coordinator_settings_max():
-    from plejd.protocol import OutputSettings
+    from plejd_cloud.protocol import OutputSettings
 
     settings = OutputSettings(min_level=20.0, max_level=90.0)
     entity = PlejdDimLevelNumber(_Coordinator([], settings=settings), _device(), "max")
@@ -179,7 +179,7 @@ async def test_init_uses_coordinator_settings_max():
 
 
 async def test_listener_updates_dim_level():
-    from plejd.protocol import OutputSettings
+    from plejd_cloud.protocol import OutputSettings
 
     coord = _Coordinator([])
     entity = PlejdDimLevelNumber(coord, _device(), "min")
@@ -220,7 +220,7 @@ async def test_transition_time_sets_seconds_and_restores():
 
 
 async def test_transition_time_init_uses_coordinator_settings():
-    from plejd.protocol import OutputSettings
+    from plejd_cloud.protocol import OutputSettings
 
     settings = OutputSettings(speed=3.5)
     t = PlejdTransitionTimeNumber(_Coordinator([], settings=settings), _device())
@@ -229,7 +229,7 @@ async def test_transition_time_init_uses_coordinator_settings():
 
 
 async def test_transition_time_listener_updates_speed():
-    from plejd.protocol import OutputSettings
+    from plejd_cloud.protocol import OutputSettings
 
     coord = _Coordinator([])
     t = PlejdTransitionTimeNumber(coord, _device())
@@ -248,7 +248,7 @@ async def test_transition_time_listener_no_update_when_settings_none():
 
 
 async def test_transition_time_live_read_during_restore_wins():
-    from plejd.protocol import OutputSettings
+    from plejd_cloud.protocol import OutputSettings
 
     coord = _Coordinator([])
     t = PlejdTransitionTimeNumber(coord, _device())
@@ -283,7 +283,7 @@ async def test_relay_off_time_set_value():
 
 
 async def test_relay_off_time_init_from_coordinator_settings():
-    from plejd.protocol import OutputSettings
+    from plejd_cloud.protocol import OutputSettings
 
     settings = OutputSettings(relay_off_time=1.5)
     t = PlejdRelayOffTimeNumber(_Coordinator([], settings=settings), _device(hardware_id=3))
@@ -309,7 +309,7 @@ async def test_relay_off_time_no_restore_when_no_prior_state():
 
 
 async def test_relay_off_time_listener_updates():
-    from plejd.protocol import OutputSettings
+    from plejd_cloud.protocol import OutputSettings
 
     coord = _Coordinator([])
     t = PlejdRelayOffTimeNumber(coord, _device(hardware_id=3))
@@ -328,7 +328,7 @@ async def test_relay_off_time_listener_no_update_when_settings_none():
 
 
 async def test_relay_off_time_live_read_during_restore_wins():
-    from plejd.protocol import OutputSettings
+    from plejd_cloud.protocol import OutputSettings
 
     coord = _Coordinator([])
     t = PlejdRelayOffTimeNumber(coord, _device(hardware_id=3))
@@ -388,7 +388,7 @@ async def test_inrush_set_value_sends_ms():
 
 
 async def test_inrush_init_from_coordinator_settings():
-    from plejd.protocol import OutputSettings
+    from plejd_cloud.protocol import OutputSettings
 
     settings = OutputSettings(inrush_current_ms=300)
     t = PlejdInrushCurrentNumber(_Coordinator([], settings=settings), _device(hardware_id=1))
@@ -414,7 +414,7 @@ async def test_inrush_no_restore_when_no_prior_state():
 
 
 async def test_inrush_listener_updates():
-    from plejd.protocol import OutputSettings
+    from plejd_cloud.protocol import OutputSettings
 
     coord = _Coordinator([])
     t = PlejdInrushCurrentNumber(coord, _device(hardware_id=1))
@@ -433,7 +433,7 @@ async def test_inrush_listener_no_update_when_settings_none():
 
 
 async def test_inrush_live_read_during_restore_wins():
-    from plejd.protocol import OutputSettings
+    from plejd_cloud.protocol import OutputSettings
 
     coord = _Coordinator([])
     t = PlejdInrushCurrentNumber(coord, _device(hardware_id=1))

@@ -374,6 +374,18 @@ class OutputState:
     output: int
     on: bool
     level: int
+    # Full uint16 (lo | hi << 8): a thermostat packs its target/current temperature here.
+    raw_level: int | None = None
+
+
+@dataclass(frozen=True)
+class ThermostatState:
+    """Decoded TRM state: mode (None on error), target/current °C, and heating if reported."""
+
+    mode: int | None
+    target: int
+    current: int
+    heating: bool | None
 
 
 @dataclass
@@ -547,11 +559,28 @@ def decode_output_state(cmd: Command) -> OutputState | None:
     A 0x00C8 read-reply (``[output, level_lo, level_hi]``) is also accepted.
     """
     if cmd.command == CMD_GROUP_STATE_AND_LEVEL and len(cmd.data) >= 3:
-        return OutputState(output=cmd.address, on=cmd.data[0] != 0, level=cmd.data[2])
+        raw = cmd.data[1] | (cmd.data[2] << 8)
+        return OutputState(output=cmd.address, on=cmd.data[0] != 0, level=cmd.data[2], raw_level=raw)
     if cmd.command == CMD_OUTPUT_STATE_AND_LEVEL and len(cmd.data) >= 3:
         level = cmd.data[2]
-        return OutputState(output=cmd.data[0], on=level > 0 or cmd.data[1] != 0, level=level)
+        raw = cmd.data[1] | (cmd.data[2] << 8)
+        return OutputState(output=cmd.data[0], on=level > 0 or cmd.data[1] != 0, level=level, raw_level=raw)
     return None
+
+
+def decode_thermostat_state(on: bool, raw_level: int, extra: int | None = None) -> ThermostatState:
+    """Unpack a TRM state report; extra is the byte after the level (bit 7 = heating)."""
+    # 24-bit word S LLLLLLLL HHHHHHHH (state, level low byte, level high byte) laid out as
+    # 0000 000M MMET TTTT TTCC CCCC: mode, error, target+10, current+10 in whole °C.
+    word = (int(on) << 16) | ((raw_level & 0xFF) << 8) | ((raw_level >> 8) & 0xFF)
+    mode = (word & 0x01C000) >> 14
+    error = bool(word & 0x002000)
+    return ThermostatState(
+        mode=None if error else mode,
+        target=((word & 0x001FC0) >> 6) - 10,
+        current=(word & 0x00003F) - 10,
+        heating=bool(extra & 0x80) if extra is not None else None,
+    )
 
 
 # ── Commissioning GATT helpers ──────────────────────────────────────────────

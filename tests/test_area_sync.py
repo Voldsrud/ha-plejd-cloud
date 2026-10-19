@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import types
 
-from plejd import area_sync
-from plejd.area_sync import (
+from plejd_cloud import area_sync
+from plejd_cloud.area_sync import (
     async_listen_area_changes,
     async_reset_areas,
     async_sync_areas,
@@ -33,7 +33,7 @@ class _Devices:
 
 
 def _device(device_id, plejd_id, area_id):
-    return types.SimpleNamespace(id=device_id, name=plejd_id, identifiers={("plejd", plejd_id)}, area_id=area_id)
+    return types.SimpleNamespace(id=device_id, name=plejd_id, identifiers={("plejd_cloud", plejd_id)}, area_id=area_id)
 
 
 class _Bus:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import types
 
-from plejd import panel
+from plejd_cloud import panel
 
 
 class _Http:

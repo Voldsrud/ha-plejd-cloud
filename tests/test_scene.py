@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import types
 
-from plejd.cloud import PlejdCloudScene
-from plejd.scene import PlejdScene, async_setup_entry
+from plejd_cloud.cloud import PlejdCloudScene
+from plejd_cloud.scene import PlejdScene, async_setup_entry
 
 
 class _Coordinator:

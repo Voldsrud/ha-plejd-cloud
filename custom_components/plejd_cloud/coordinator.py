@@ -46,6 +46,7 @@ from .cloud import (
 )
 from .connection import PlejdConnection
 from .const import (
+    CATEGORY_CLIMATE,
     CATEGORY_LIGHT,
     CATEGORY_SWITCH,
     CMD_GROUP_STATE_AND_LEVEL,
@@ -91,7 +92,16 @@ from .const import (
 )
 from .dim_ramp import PlejdDimRamp
 from .gateway_transport import PlejdGatewayConnection
-from .protocol import Command, MotionEvent, OutputSettings, OutputState, decode_motion, decode_notify_events
+from .protocol import (
+    Command,
+    MotionEvent,
+    OutputSettings,
+    OutputState,
+    ThermostatState,
+    decode_motion,
+    decode_notify_events,
+    decode_thermostat_state,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -204,6 +214,7 @@ class PlejdCoordinator:
         self.dim_ramp = PlejdDimRamp(hass, self)
         # Tolerate entries stored before a field existed (e.g. output_index).
         self.devices = [PlejdCloudDevice(**{"output_index": 0, **device}) for device in entry.data[CONF_DEVICES]]
+        self._climate_addresses = {d.address for d in self.devices if d.category == CATEGORY_CLIMATE}
         self.scenes = [PlejdCloudScene(**scene) for scene in entry.data.get(CONF_SCENES, [])]
         self.rooms = [PlejdCloudRoom(**room) for room in entry.data.get(CONF_ROOMS, [])]
         # CONF_ROOMS is absent (not just empty) on entries added before room-groups existed;
@@ -260,6 +271,7 @@ class PlejdCoordinator:
         self._motion_listeners: list[Callable[[MotionEvent], None]] = []
         self._fault_listeners: list[Callable[[int, frozenset[str]], None]] = []
         self._faults: dict[int, frozenset[str]] = {}
+        self._climate_heating: dict[int, bool] = {}
         self.firmware: dict[str, PlejdFirmwareStatus] = {}  # device_id -> firmware status
         self._clock_unsub: Callable[[], None] | None = None
         self._faults_unsub: Callable[[], None] | None = None
@@ -436,6 +448,8 @@ class PlejdCoordinator:
         if command.command in (CMD_GROUP_STATE_AND_LEVEL, CMD_OUTPUT_STATE_AND_LEVEL):
             if command.command == CMD_GROUP_STATE_AND_LEVEL:
                 self._fan_group_state_to_members(command)
+            if command.address in self._climate_addresses and len(command.data) > 3:
+                self._climate_heating[command.address] = bool(command.data[3] & 0x80)
             for update in list(self._listeners):
                 update()
         elif command.command == CMD_INPUT_BUTTON:
@@ -535,6 +549,17 @@ class PlejdCoordinator:
             setattr(s, name, value)
         self._output_settings[address] = s
         self._notify_outputs()
+
+    def climate_state_for(self, address: int) -> ThermostatState | None:
+        """Last-known thermostat state, decoded from the output-state report."""
+        state = self.state_for(address)
+        if state is None or state.raw_level is None:
+            return None
+        decoded = decode_thermostat_state(state.on, state.raw_level)
+        heating = self._climate_heating.get(address)
+        if heating is None:
+            return decoded
+        return ThermostatState(mode=decoded.mode, target=decoded.target, current=decoded.current, heating=heating)
 
     def state_for(self, address: int) -> OutputState | None:
         """Last-known output state for a mesh address, if seen."""

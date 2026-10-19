@@ -5,8 +5,8 @@ from __future__ import annotations
 import types
 
 from homeassistant.const import EntityCategory
-from plejd.cloud import PlejdCloudDevice
-from plejd.select import PlejdBootStateSelect, PlejdOutputSettingSelect, PlejdRelayPoleSelect, async_setup_entry
+from plejd_cloud.cloud import PlejdCloudDevice
+from plejd_cloud.select import PlejdBootStateSelect, PlejdOutputSettingSelect, PlejdRelayPoleSelect, async_setup_entry
 
 
 def _device(category="light", address=5, dimmable=True, output_index=0, hardware_id=1):
@@ -124,7 +124,7 @@ async def test_ignores_unknown_restored_option():
 
 
 async def test_init_uses_coordinator_settings_curve():
-    from plejd.protocol import OutputSettings
+    from plejd_cloud.protocol import OutputSettings
 
     settings = OutputSettings(curve=1)  # 1 = linear
     entity = PlejdOutputSettingSelect(_Coordinator([], settings=settings), _device(), "curve")
@@ -133,7 +133,7 @@ async def test_init_uses_coordinator_settings_curve():
 
 
 async def test_init_uses_coordinator_settings_phase():
-    from plejd.protocol import OutputSettings
+    from plejd_cloud.protocol import OutputSettings
 
     settings = OutputSettings(phase_dim=1)  # 1 = leading_edge
     entity = PlejdOutputSettingSelect(_Coordinator([], settings=settings), _device(), "phase")
@@ -155,7 +155,7 @@ async def test_init_falls_back_to_restore_when_settings_none():
 async def test_live_read_arriving_during_restore_wins_over_stale_state():
     """A read reply landing while awaiting restore must win — the listener is subscribed
     first, and the settings cache is re-checked after the await."""
-    from plejd.protocol import OutputSettings
+    from plejd_cloud.protocol import OutputSettings
 
     coord = _Coordinator([])
     entity = PlejdOutputSettingSelect(coord, _device(), "curve")
@@ -170,7 +170,7 @@ async def test_live_read_arriving_during_restore_wins_over_stale_state():
 
 
 async def test_listener_updates_curve_option():
-    from plejd.protocol import OutputSettings
+    from plejd_cloud.protocol import OutputSettings
 
     coord = _Coordinator([])
     entity = PlejdOutputSettingSelect(coord, _device(), "curve")
@@ -189,7 +189,7 @@ async def test_listener_no_update_when_settings_none():
 
 
 async def test_listener_no_update_when_unknown_raw_value():
-    from plejd.protocol import OutputSettings
+    from plejd_cloud.protocol import OutputSettings
 
     coord = _Coordinator([], settings=OutputSettings(curve=99))  # 99 not in CURVE_OPTIONS
     entity = PlejdOutputSettingSelect(coord, _device(), "curve")
@@ -227,7 +227,7 @@ async def test_boot_state_select_option_sends_bool():
 
 
 async def test_boot_state_init_from_coordinator_settings_use_last():
-    from plejd.protocol import OutputSettings
+    from plejd_cloud.protocol import OutputSettings
 
     settings = OutputSettings(boot_state=True)
     entity = PlejdBootStateSelect(_Coordinator([], settings=settings), _device())
@@ -236,7 +236,7 @@ async def test_boot_state_init_from_coordinator_settings_use_last():
 
 
 async def test_boot_state_init_from_coordinator_settings_off():
-    from plejd.protocol import OutputSettings
+    from plejd_cloud.protocol import OutputSettings
 
     settings = OutputSettings(boot_state=False)
     entity = PlejdBootStateSelect(_Coordinator([], settings=settings), _device())
@@ -256,7 +256,7 @@ async def test_boot_state_falls_back_to_restore():
 
 
 async def test_boot_state_live_read_during_restore_wins():
-    from plejd.protocol import OutputSettings
+    from plejd_cloud.protocol import OutputSettings
 
     coord = _Coordinator([])
     entity = PlejdBootStateSelect(coord, _device())
@@ -282,7 +282,7 @@ async def test_boot_state_ignores_unknown_restored_state():
 
 
 async def test_boot_state_listener_updates():
-    from plejd.protocol import OutputSettings
+    from plejd_cloud.protocol import OutputSettings
 
     coord = _Coordinator([])
     entity = PlejdBootStateSelect(coord, _device())
@@ -301,7 +301,7 @@ async def test_boot_state_listener_no_update_when_settings_none():
 
 
 async def test_boot_state_listener_ignores_none_raw_value():
-    from plejd.protocol import OutputSettings
+    from plejd_cloud.protocol import OutputSettings
 
     coord = _Coordinator([])
     entity = PlejdBootStateSelect(coord, _device())
@@ -358,7 +358,7 @@ async def test_relay_pole_select_option_sends_wire_value():
 
 
 async def test_relay_pole_init_from_coordinator_settings():
-    from plejd.protocol import OutputSettings
+    from plejd_cloud.protocol import OutputSettings
 
     settings = OutputSettings(relay_pole_config=1)
     entity = PlejdRelayPoleSelect(_Coordinator([], settings=settings), _device(hardware_id=11))
@@ -378,7 +378,7 @@ async def test_relay_pole_falls_back_to_restore():
 
 
 async def test_relay_pole_live_read_during_restore_wins():
-    from plejd.protocol import OutputSettings
+    from plejd_cloud.protocol import OutputSettings
 
     coord = _Coordinator([])
     entity = PlejdRelayPoleSelect(coord, _device(hardware_id=11))
@@ -404,7 +404,7 @@ async def test_relay_pole_ignores_unknown_restored_state():
 
 
 async def test_relay_pole_listener_updates():
-    from plejd.protocol import OutputSettings
+    from plejd_cloud.protocol import OutputSettings
 
     coord = _Coordinator([])
     entity = PlejdRelayPoleSelect(coord, _device(hardware_id=11))
@@ -423,7 +423,7 @@ async def test_relay_pole_listener_no_update_when_settings_none():
 
 
 async def test_relay_pole_listener_ignores_unknown_raw_value():
-    from plejd.protocol import OutputSettings
+    from plejd_cloud.protocol import OutputSettings
 
     coord = _Coordinator([])
     entity = PlejdRelayPoleSelect(coord, _device(hardware_id=11))

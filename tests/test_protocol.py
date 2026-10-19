@@ -3,8 +3,13 @@
 from __future__ import annotations
 
 import pytest
-from plejd.const import CMD_GROUP_STATE_AND_LEVEL, CMD_MESH_GROUP_MEMBERSHIP, CMD_OUTPUT_STATE_AND_LEVEL, CMD_SCENE
-from plejd.protocol import (
+from plejd_cloud.const import (
+    CMD_GROUP_STATE_AND_LEVEL,
+    CMD_MESH_GROUP_MEMBERSHIP,
+    CMD_OUTPUT_STATE_AND_LEVEL,
+    CMD_SCENE,
+)
+from plejd_cloud.protocol import (
     TYPE_DONT_RESPOND,
     TYPE_READ,
     TYPE_WRITE,
@@ -136,7 +141,7 @@ def test_decode_state_report_0x0098_keyed_by_address():
         address=11, command_type=0x10, command=CMD_GROUP_STATE_AND_LEVEL, data=bytes([0x01, 0xC8, 0xC8, 0x00])
     )
     st = decode_output_state(cmd)
-    assert st == st.__class__(output=11, on=True, level=0xC8)
+    assert st == st.__class__(output=11, on=True, level=0xC8, raw_level=0xC8C8)
 
 
 def test_decode_state_report_off():
@@ -156,8 +161,8 @@ def test_decode_output_state_ignores_other_opcodes_and_short_data():
 
 
 def test_set_output_relay_config_bytes():
-    from plejd.const import CMD_OUTPUT_RELAY_CONFIG
-    from plejd.protocol import set_output_relay_config
+    from plejd_cloud.const import CMD_OUTPUT_RELAY_CONFIG
+    from plejd_cloud.protocol import set_output_relay_config
 
     v = set_output_relay_config(0x05, output=0, config=0)  # two_pole
     assert v[2] == TYPE_DONT_RESPOND
@@ -169,7 +174,7 @@ def test_set_output_relay_config_bytes():
 
 
 def test_request_output_relay_config_uses_read_type():
-    from plejd.protocol import request_output_relay_config
+    from plejd_cloud.protocol import request_output_relay_config
 
     v = request_output_relay_config(0x05, output=0)
     assert v[2] == TYPE_READ
@@ -177,7 +182,7 @@ def test_request_output_relay_config_uses_read_type():
 
 
 def test_decode_output_relay_config_reply():
-    from plejd.protocol import decode_output_relay_config_reply
+    from plejd_cloud.protocol import decode_output_relay_config_reply
 
     assert decode_output_relay_config_reply(Command(5, 0, 0x022A, bytes([0]))) == 0
     assert decode_output_relay_config_reply(Command(5, 0, 0x022A, bytes([1]))) == 1
@@ -188,8 +193,8 @@ def test_decode_output_relay_config_reply():
 
 
 def test_set_output_inrush_current_bytes():
-    from plejd.const import CMD_OUTPUT_INRUSH_CURRENT
-    from plejd.protocol import set_output_inrush_current
+    from plejd_cloud.const import CMD_OUTPUT_INRUSH_CURRENT
+    from plejd_cloud.protocol import set_output_inrush_current
 
     # 500 ms → 50 centiseconds (0x32, 0x00)
     v = set_output_inrush_current(0x05, output=0, time_ms=500)
@@ -207,7 +212,7 @@ def test_set_output_inrush_current_bytes():
 
 
 def test_request_output_inrush_current_uses_read_type():
-    from plejd.protocol import request_output_inrush_current
+    from plejd_cloud.protocol import request_output_inrush_current
 
     v = request_output_inrush_current(0x05, output=0)
     assert v[2] == TYPE_READ
@@ -215,7 +220,7 @@ def test_request_output_inrush_current_uses_read_type():
 
 
 def test_decode_output_inrush_current_reply():
-    from plejd.protocol import decode_output_inrush_current_reply
+    from plejd_cloud.protocol import decode_output_inrush_current_reply
 
     # 50 cs → 500 ms
     assert decode_output_inrush_current_reply(Command(5, 0, 0x00A2, bytes([50, 0]))) == 500
@@ -226,8 +231,8 @@ def test_decode_output_inrush_current_reply():
 
 
 def test_set_climate_setpoint_bytes():
-    from plejd.const import CMD_TRM_SETPOINT
-    from plejd.protocol import set_climate_setpoint
+    from plejd_cloud.const import CMD_TRM_SETPOINT
+    from plejd_cloud.protocol import set_climate_setpoint
 
     v = set_climate_setpoint(9, 21.5)  # 215 = 0x00D7 little-endian
     assert (v[3] << 8) | v[4] == CMD_TRM_SETPOINT
@@ -235,22 +240,22 @@ def test_set_climate_setpoint_bytes():
 
 
 def test_set_climate_mode_bytes():
-    from plejd.const import CMD_TRM_MODE
-    from plejd.protocol import set_climate_mode
+    from plejd_cloud.const import CMD_TRM_MODE
+    from plejd_cloud.protocol import set_climate_mode
 
     v = set_climate_mode(9, 3)
     assert (v[3] << 8) | v[4] == CMD_TRM_MODE and v[5:] == bytes([3])
 
 
 def test_decode_temperature():
-    from plejd.protocol import decode_temperature
+    from plejd_cloud.protocol import decode_temperature
 
     assert decode_temperature(bytes([0xD7, 0x00])) == 21.5
     assert decode_temperature(b"\x00") is None
 
 
 def test_parse_mini_package_real_wms_capture():
-    from plejd.protocol import parse_mini_package
+    from plejd_cloud.protocol import parse_mini_package
 
     # captured live from a WMS-01 motion broadcast
     data = bytes.fromhex("0303 1f07 00b0 0f08 46 0602".replace(" ", ""))
@@ -261,8 +266,8 @@ def test_parse_mini_package_real_wms_capture():
 
 
 def test_decode_motion_from_capture():
-    from plejd.const import CMD_OUTPUT_SET
-    from plejd.protocol import Command, decode_motion
+    from plejd_cloud.const import CMD_OUTPUT_SET
+    from plejd_cloud.protocol import Command, decode_motion
 
     cmd = Command(address=33, command_type=0x10, command=CMD_OUTPUT_SET, data=bytes.fromhex("03031f0700b00f08460602"))
     m = decode_motion(cmd)
@@ -270,15 +275,15 @@ def test_decode_motion_from_capture():
 
 
 def test_decode_motion_ignores_other_opcodes():
-    from plejd.const import CMD_SCENE
-    from plejd.protocol import Command, decode_motion
+    from plejd_cloud.const import CMD_SCENE
+    from plejd_cloud.protocol import Command, decode_motion
 
     assert decode_motion(Command(0, 0, CMD_SCENE, b"\x01")) is None
 
 
 def test_set_cover_position_bytes():
-    from plejd.const import CMD_OUTPUT_SET
-    from plejd.protocol import set_cover_position
+    from plejd_cloud.const import CMD_OUTPUT_SET
+    from plejd_cloud.protocol import set_cover_position
 
     open_cmd = set_cover_position(5, 100)  # level 255 -> inverted 0
     assert (open_cmd[3] << 8) | open_cmd[4] == CMD_OUTPUT_SET
@@ -288,14 +293,14 @@ def test_set_cover_position_bytes():
 
 
 def test_cover_stop_bytes():
-    from plejd.protocol import cover_stop
+    from plejd_cloud.protocol import cover_stop
 
     assert cover_stop(5)[5:] == bytes([0x03, 0x08, 0x07, 0x00])
 
 
 def test_dim_level_setting_bytes():
-    from plejd.const import CMD_OUTPUT_MAX_LEVEL, CMD_OUTPUT_MIN_LEVEL
-    from plejd.protocol import TYPE_DONT_RESPOND, set_output_max_level, set_output_min_level
+    from plejd_cloud.const import CMD_OUTPUT_MAX_LEVEL, CMD_OUTPUT_MIN_LEVEL
+    from plejd_cloud.protocol import TYPE_DONT_RESPOND, set_output_max_level, set_output_min_level
 
     minimum = set_output_min_level(9, 1, 0.5)  # 0.5 * 65535 = 32768 (0x8000) le
     assert (minimum[3] << 8) | minimum[4] == CMD_OUTPUT_MIN_LEVEL
@@ -309,8 +314,8 @@ def test_dim_level_setting_bytes():
 
 
 def test_set_output_start_level_bytes():
-    from plejd.const import CMD_OUTPUT_START_LEVEL
-    from plejd.protocol import set_output_start_level
+    from plejd_cloud.const import CMD_OUTPUT_START_LEVEL
+    from plejd_cloud.protocol import set_output_start_level
 
     start = set_output_start_level(9, 1, 0.5)  # 0.5*65535 = 32768 = 0x8000 le
     assert (start[3] << 8) | start[4] == CMD_OUTPUT_START_LEVEL
@@ -318,8 +323,8 @@ def test_set_output_start_level_bytes():
 
 
 def test_set_output_speed_bytes():
-    from plejd.const import CMD_OUTPUT_SPEED
-    from plejd.protocol import set_output_speed
+    from plejd_cloud.const import CMD_OUTPUT_SPEED
+    from plejd_cloud.protocol import set_output_speed
 
     one_s = set_output_speed(9, 1, 1.0)  # steps round(65535/1/100)=655=0x028F; >0.5s sets bit7 of hi
     assert (one_s[3] << 8) | one_s[4] == CMD_OUTPUT_SPEED
@@ -331,7 +336,7 @@ def test_set_output_speed_bytes():
 
 
 def test_weekday_mask():
-    from plejd.protocol import weekday_mask
+    from plejd_cloud.protocol import weekday_mask
 
     assert weekday_mask([0, 6]) == 0x41  # Monday + Sunday
     assert weekday_mask([0, 1, 2, 3, 4, 5, 6]) == 0x7F
@@ -339,8 +344,8 @@ def test_weekday_mask():
 
 
 def test_time_event_bytes():
-    from plejd.const import CMD_TIME_EVENT_SCENE, CMD_TIME_EVENT_TIME, CMD_TIME_EVENT_TYPE
-    from plejd.protocol import (
+    from plejd_cloud.const import CMD_TIME_EVENT_SCENE, CMD_TIME_EVENT_TIME, CMD_TIME_EVENT_TYPE
+    from plejd_cloud.protocol import (
         remove_time_event,
         set_time_event_scene,
         set_time_event_time,
@@ -361,8 +366,8 @@ def test_time_event_bytes():
 
 
 def test_set_timestamp_bytes():
-    from plejd.const import CMD_SYSTEM_TIME
-    from plejd.protocol import TYPE_DONT_RESPOND, set_timestamp
+    from plejd_cloud.const import CMD_SYSTEM_TIME
+    from plejd_cloud.protocol import TYPE_DONT_RESPOND, set_timestamp
 
     cmd = set_timestamp(0x01020304)
     assert cmd[0] == 0x00  # broadcast address
@@ -372,8 +377,8 @@ def test_set_timestamp_bytes():
 
 
 def test_dimmer_tuning_setting_bytes():
-    from plejd.const import CMD_OUTPUT_CURVE_TYPE, CMD_OUTPUT_PHASE_DIM_TYPE
-    from plejd.protocol import set_output_curve, set_output_phase_dim
+    from plejd_cloud.const import CMD_OUTPUT_CURVE_TYPE, CMD_OUTPUT_PHASE_DIM_TYPE
+    from plejd_cloud.protocol import set_output_curve, set_output_phase_dim
 
     curve = set_output_curve(9, 1, 3)  # antilogarithmic
     assert (curve[3] << 8) | curve[4] == CMD_OUTPUT_CURVE_TYPE
@@ -387,7 +392,7 @@ def test_dimmer_tuning_setting_bytes():
 
 
 def test_public_key_bytes_packs_little_endian():
-    from plejd.protocol import public_key_bytes
+    from plejd_cloud.protocol import public_key_bytes
 
     key = 0x0102030405060708
     b = public_key_bytes(key)
@@ -396,41 +401,41 @@ def test_public_key_bytes_packs_little_endian():
 
 
 def test_public_key_bytes_truncates_to_uint64():
-    from plejd.protocol import public_key_bytes
+    from plejd_cloud.protocol import public_key_bytes
 
     # High bits beyond 64 should be masked out.
     assert public_key_bytes((1 << 64) | 1) == public_key_bytes(1)
 
 
 def test_access_address_bytes_parses_dash_hex():
-    from plejd.protocol import access_address_bytes
+    from plejd_cloud.protocol import access_address_bytes
 
     assert access_address_bytes("AA-BB-CC-DD") == bytes([0xAA, 0xBB, 0xCC, 0xDD])
 
 
 def test_access_address_bytes_empty_string():
-    from plejd.protocol import access_address_bytes
+    from plejd_cloud.protocol import access_address_bytes
 
     assert access_address_bytes("") == b""
 
 
 def test_node_index_bytes_single_byte():
-    from plejd.protocol import node_index_bytes
+    from plejd_cloud.protocol import node_index_bytes
 
     assert node_index_bytes(5) == bytes([5])
     assert node_index_bytes(255) == bytes([255])
 
 
 def test_node_index_bytes_masks_to_one_byte():
-    from plejd.protocol import node_index_bytes
+    from plejd_cloud.protocol import node_index_bytes
 
     assert node_index_bytes(256) == bytes([0])
     assert node_index_bytes(257) == bytes([1])
 
 
 def test_replace_last_mesh_command_uses_dont_respond_and_cmd_device_type():
-    from plejd.const import CMD_DEVICE_TYPE
-    from plejd.protocol import TYPE_DONT_RESPOND, replace_last_mesh_command
+    from plejd_cloud.const import CMD_DEVICE_TYPE
+    from plejd_cloud.protocol import TYPE_DONT_RESPOND, replace_last_mesh_command
 
     v = replace_last_mesh_command(7)
     # Byte 0: address low byte
@@ -444,14 +449,14 @@ def test_replace_last_mesh_command_uses_dont_respond_and_cmd_device_type():
 
 
 def test_settings_read_requests_use_read_type():
-    from plejd.const import (
+    from plejd_cloud.const import (
         CMD_OUTPUT_CURVE_TYPE,
         CMD_OUTPUT_MAX_LEVEL,
         CMD_OUTPUT_MIN_LEVEL,
         CMD_OUTPUT_PHASE_DIM_TYPE,
         CMD_OUTPUT_SPEED,
     )
-    from plejd.protocol import (
+    from plejd_cloud.protocol import (
         request_output_curve,
         request_output_max_level,
         request_output_min_level,
@@ -473,7 +478,7 @@ def test_settings_read_requests_use_read_type():
 
 
 def test_decode_output_level_reply_round_trips():
-    from plejd.protocol import Command, decode_output_level_reply
+    from plejd_cloud.protocol import Command, decode_output_level_reply
 
     # 50% = round(32767.5 / 65535 * 100) = 50.0
     half_u16 = 0x7FFF
@@ -490,7 +495,7 @@ def test_decode_output_level_reply_round_trips():
 
 
 def test_decode_output_speed_reply_round_trips():
-    from plejd.protocol import Command, decode_output_speed_reply
+    from plejd_cloud.protocol import Command, decode_output_speed_reply
 
     # instant sentinel: [0xFF, 0xFF] -> 0.0s
     instant = Command(address=5, command_type=0x02, command=0x00CB, data=bytes([0xFF, 0xFF]))
@@ -506,7 +511,7 @@ def test_decode_output_speed_reply_round_trips():
 
 
 def test_decode_output_curve_and_phase_dim_replies():
-    from plejd.protocol import Command, decode_output_curve_reply, decode_output_phase_dim_reply
+    from plejd_cloud.protocol import Command, decode_output_curve_reply, decode_output_phase_dim_reply
 
     curve_cmd = Command(address=5, command_type=0x02, command=0x00CC, data=bytes([1]))  # logarithmic
     assert decode_output_curve_reply(curve_cmd) == 1
@@ -520,8 +525,8 @@ def test_decode_output_curve_and_phase_dim_replies():
 
 
 def test_set_output_boot_state_bytes():
-    from plejd.const import CMD_OUTPUT_BOOT_STATE
-    from plejd.protocol import set_output_boot_state
+    from plejd_cloud.const import CMD_OUTPUT_BOOT_STATE
+    from plejd_cloud.protocol import set_output_boot_state
 
     # use_last → 1-byte payload [output]
     v = set_output_boot_state(9, 0, True)
@@ -534,7 +539,7 @@ def test_set_output_boot_state_bytes():
 
 
 def test_decode_output_boot_state_reply():
-    from plejd.protocol import Command, decode_output_boot_state_reply
+    from plejd_cloud.protocol import Command, decode_output_boot_state_reply
 
     # 1-byte reply → use_last=True
     cmd1 = Command(5, 0x02, 0x00D7, bytes([0x00]))
@@ -554,8 +559,8 @@ def test_decode_output_boot_state_reply():
 
 
 def test_set_output_relay_off_time_bytes():
-    from plejd.const import CMD_OUTPUT_RELAY_OFF_TIME
-    from plejd.protocol import set_output_relay_off_time
+    from plejd_cloud.const import CMD_OUTPUT_RELAY_OFF_TIME
+    from plejd_cloud.protocol import set_output_relay_off_time
 
     # 2 seconds = 200 centiseconds = 0x00C8 little-endian
     v = set_output_relay_off_time(9, 0, 2.0)
@@ -564,7 +569,7 @@ def test_set_output_relay_off_time_bytes():
 
 
 def test_decode_output_relay_off_time_reply():
-    from plejd.protocol import Command, decode_output_relay_off_time_reply
+    from plejd_cloud.protocol import Command, decode_output_relay_off_time_reply
 
     # 200 centiseconds = 2.0 seconds
     cmd = Command(5, 0x02, 0x00D4, bytes([0xC8, 0x00]))
@@ -580,8 +585,8 @@ def test_decode_output_relay_off_time_reply():
 
 
 def test_request_boot_state_and_relay_off_time_use_read_type():
-    from plejd.const import CMD_OUTPUT_BOOT_STATE, CMD_OUTPUT_RELAY_OFF_TIME
-    from plejd.protocol import TYPE_READ, request_output_boot_state, request_output_relay_off_time
+    from plejd_cloud.const import CMD_OUTPUT_BOOT_STATE, CMD_OUTPUT_RELAY_OFF_TIME
+    from plejd_cloud.protocol import TYPE_READ, request_output_boot_state, request_output_relay_off_time
 
     for req_fn, expected_cmd in [
         (request_output_boot_state, CMD_OUTPUT_BOOT_STATE),
@@ -594,8 +599,8 @@ def test_request_boot_state_and_relay_off_time_use_read_type():
 
 
 def test_notify_events_request_and_decode():
-    from plejd.const import CMD_NOTIFY_EVENTS, CMD_SCENE
-    from plejd.protocol import TYPE_READ, Command, decode_notify_events, request_notify_events
+    from plejd_cloud.const import CMD_NOTIFY_EVENTS, CMD_SCENE
+    from plejd_cloud.protocol import TYPE_READ, Command, decode_notify_events, request_notify_events
 
     req = request_notify_events(11)
     assert req[2] == TYPE_READ and (req[3] << 8) | req[4] == CMD_NOTIFY_EVENTS and req[5:] == b""
@@ -610,3 +615,35 @@ def test_notify_events_request_and_decode():
     # gateway) must be rejected, not treated as an all-clear empty bitfield.
     assert decode_notify_events(Command(11, 0x03, CMD_NOTIFY_EVENTS, b"")) is None
     assert decode_notify_events(Command(11, 0x03, CMD_NOTIFY_EVENTS, bytes(7))) is None
+
+
+def test_decode_state_report_keeps_the_full_level_for_thermostats():
+    cmd = Command(address=9, command_type=0x10, command=CMD_GROUP_STATE_AND_LEVEL, data=bytes([0x01, 0xC8, 0x21]))
+    assert decode_output_state(cmd).raw_level == 0x21C8
+
+
+def test_decode_read_reply_keeps_the_full_level():
+    cmd = Command(address=9, command_type=0x03, command=CMD_OUTPUT_STATE_AND_LEVEL, data=bytes([0x00, 0xC8, 0x21]))
+    assert decode_output_state(cmd).raw_level == 0x21C8
+
+
+def test_decode_thermostat_state_unpacks_mode_target_and_current():
+    from plejd_cloud.protocol import decode_thermostat_state
+
+    state = decode_thermostat_state(True, 0x21C8)
+    assert (state.mode, state.target, state.current, state.heating) == (7, 22, 23, None)
+
+
+def test_decode_thermostat_state_reports_heating_from_the_extra_byte():
+    from plejd_cloud.protocol import decode_thermostat_state
+
+    assert decode_thermostat_state(True, 0x21C8, 0x80).heating is True
+    assert decode_thermostat_state(True, 0x21C8, 0x00).heating is False
+
+
+def test_decode_thermostat_state_hides_the_mode_on_error():
+    from plejd_cloud.protocol import decode_thermostat_state
+
+    # word 0x1E821 = 0x1C821 with the error bit (0x2000) set
+    state = decode_thermostat_state(True, 0x21E8)
+    assert state.mode is None and state.target == 22 and state.current == 23

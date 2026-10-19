@@ -5,7 +5,7 @@ from __future__ import annotations
 import struct
 
 import pytest
-from plejd.crypto import (
+from plejd_cloud.crypto import (
     _DH_BASE,
     _DH_MOD,
     DEFAULT_MESH_KEY,

@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import types
 
-from plejd import remote_profile_ws
-from plejd.remote_profile_ws import DATA_REMOTE_PROFILES
-from plejd.remote_profiles import InvalidRemoteProfile
+from plejd_cloud import remote_profile_ws
+from plejd_cloud.remote_profile_ws import DATA_REMOTE_PROFILES
+from plejd_cloud.remote_profiles import InvalidRemoteProfile
 
 
 class _Conn:

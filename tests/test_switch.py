@@ -6,10 +6,10 @@ import types
 
 import pytest
 from homeassistant.exceptions import HomeAssistantError
-from plejd.cloud import PlejdCloudDevice
-from plejd.holiday_mode import DATA_HOLIDAY_MODE, PlejdHolidayMode
-from plejd.protocol import OutputState
-from plejd.switch import PlejdHolidaySwitch, PlejdScheduleSwitch, PlejdSwitch, async_setup_entry
+from plejd_cloud.cloud import PlejdCloudDevice
+from plejd_cloud.holiday_mode import DATA_HOLIDAY_MODE, PlejdHolidayMode
+from plejd_cloud.protocol import OutputState
+from plejd_cloud.switch import PlejdHolidaySwitch, PlejdScheduleSwitch, PlejdSwitch, async_setup_entry
 
 
 def _device(category="switch", address=7):

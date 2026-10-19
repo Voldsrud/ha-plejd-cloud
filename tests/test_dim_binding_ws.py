@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import types
 
-from plejd import dim_binding_ws
-from plejd.bindings import _ERR_STOPLESS_BINDING, InvalidDimBinding
-from plejd.dim_binding_ws import DATA_BINDINGS
+from plejd_cloud import dim_binding_ws
+from plejd_cloud.bindings import _ERR_STOPLESS_BINDING, InvalidDimBinding
+from plejd_cloud.dim_binding_ws import DATA_BINDINGS
 
 
 class _Conn:
@@ -155,7 +155,7 @@ async def test_device_triggers_buttons_matches_builtin_profile_via_model_id():
 
 
 async def test_device_triggers_buttons_prefers_custom_override_over_builtin_profile():
-    from plejd.dim_binding_ws import DATA_REMOTE_PROFILES
+    from plejd_cloud.dim_binding_ws import DATA_REMOTE_PROFILES
 
     trigs = [{"type": "action", "subtype": "on"}]
     custom = {
