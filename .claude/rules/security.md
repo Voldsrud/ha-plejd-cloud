@@ -1,6 +1,6 @@
 ---
 paths:
-  - "custom_components/plejd/**"
+  - "custom_components/plejd_cloud/**"
   - "tools/**"
 ---
 

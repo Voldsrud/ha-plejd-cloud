@@ -3,7 +3,7 @@
 Commissions an unprovisioned Plejd device into the mesh directly from this
 machine's own Bluetooth adapter: cloud registration (createPlejdDevice_V2),
 then the full BLE pairing sequence (DH key exchange, access address, node
-index) — the same steps custom_components/plejd/add_device.py's
+index) — the same steps custom_components/plejd_cloud/add_device.py's
 async_add_device does for the Home Assistant "Add a device" wizard.
 
 Useful when Home Assistant itself has no local Bluetooth adapter or ESPHome

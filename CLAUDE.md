@@ -16,7 +16,7 @@ the information was captured from the Android app and the BLE mesh.
 
 The engine (hooks, reviewer agents, workflow skills) comes from the [dotclaude](https://github.com/8408323/dotclaude) plugin, installed via its marketplace — not copied into this repo. `.claude/settings.json` wires it up (`extraKnownMarketplaces` + `enabledPlugins`); run `/plugin update dotclaude@dotclaude` to update it. What lives in this repo is only the **project-local layer**:
 
-- `.claude/rules/` — project-owned instruction files, tuned for this pure-Python HA integration. Always-on: `code-quality.md`, `testing.md`. Path-scoped to `custom_components/plejd/**` (+ `tools/**`): `security.md`, `error-handling.md`.
+- `.claude/rules/` — project-owned instruction files, tuned for this pure-Python HA integration. Always-on: `code-quality.md`, `testing.md`. Path-scoped to `custom_components/plejd_cloud/**` (+ `tools/**`): `security.md`, `error-handling.md`.
 - `.claude/settings.json` — the marketplace/plugin wiring plus this repo's permission allow/deny.
 - **Copilot instructions are generated from these rules** by `/dotclaude:init` — `.github/copilot-instructions.md` and `.github/instructions/*.instructions.md`. Don't hand-edit them; change the rule and re-run. `AGENTS.md` is a cross-tool pointer.
 - Project plans go in `.claude/plans/` (gitignored).
@@ -26,7 +26,7 @@ The engine (hooks, reviewer agents, workflow skills) comes from the [dotclaude](
 ## Repository structure
 
 ```
-custom_components/plejd/   # HA integration (the actual product)
+custom_components/plejd_cloud/   # HA integration (the actual product)
   __init__.py              # entry setup / teardown
   config_flow.py           # Bluetooth discovery + account login config flow
   const.py                 # DOMAIN, conf keys, BLE service/characteristic UUIDs
@@ -65,7 +65,7 @@ confirmed against our own capture before being relied on (see `const.py` NOTE).
 ## Running tests
 
 ```
-uv run pytest tests/ -v --cov=custom_components/plejd --cov-fail-under=100
+uv run pytest tests/ -v --cov=custom_components/plejd_cloud --cov-fail-under=100
 ```
 
 Always use `uv run` — the project manages Python via uv, not system Python. The

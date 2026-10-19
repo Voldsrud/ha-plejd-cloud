@@ -1,3 +1,5 @@
+> **Renamed fork: Plejd Cloud (`plejd_cloud`).** This is [8408323/ha-plejd](https://github.com/8408323/ha-plejd) with the integration domain renamed from `plejd` to `plejd_cloud` (folder `custom_components/plejd_cloud`) and its Bluetooth auto-discovery matcher removed, so it can be installed alongside [thomasloven/hass-plejd](https://github.com/thomasloven/hass-plejd), which also uses the `plejd` domain. Used here for a gateway (GWY-01) site controlled over the internet. All credit to the upstream author; report bugs upstream unless they are caused by the rename.
+
 # ha-plejd
 
 [![Lint](https://github.com/8408323/ha-plejd/actions/workflows/lint.yml/badge.svg)](https://github.com/8408323/ha-plejd/actions/workflows/lint.yml)
@@ -47,7 +49,7 @@ Or manually:
 
 ### Manual
 
-1. Copy `custom_components/plejd/` to your HA `config/custom_components/` directory.
+1. Copy `custom_components/plejd_cloud/` to your HA `config/custom_components/` directory.
 2. Restart Home Assistant.
 
 ## Configuration
@@ -148,13 +150,13 @@ The integration is pure Python with no Home Assistant import needed to run the t
 
 ```bash
 uv sync --dev
-uv run pytest tests/ -v --cov=custom_components/plejd --cov-fail-under=100
+uv run pytest tests/ -v --cov=custom_components/plejd_cloud --cov-fail-under=100
 node --test tests/test_panel_logic.mjs
 uv run ruff check custom_components/ tests/ tools/
 ```
 
 The dashboard is a React + Vite app in `frontend/`, built into
-`custom_components/plejd/www/panel.js` (committed, so HACS installs need no build step).
+`custom_components/plejd_cloud/www/panel.js` (committed, so HACS installs need no build step).
 After changing it, rebuild and commit the output:
 
 ```bash

@@ -20,12 +20,12 @@ Anti-defaults that counter common Claude tendencies (no premature abstraction, n
 Terse testing principles: verify behavior, run the specific test file, fix or delete flaky tests, prefer real implementations, no empty assertions. Comprehensive test writing is handled by the `test-writer` skill.
 
 ### security.md
-**Scope**: Path-scoped (`custom_components/plejd/**`, `tools/**`)
+**Scope**: Path-scoped (`custom_components/plejd_cloud/**`, `tools/**`)
 
 Loads when touching integration or tooling code. This integration is a Plejd-cloud client (for the site crypto key) and a BLE-mesh client, not a server: protecting the crypto key, validating untrusted BLE/cloud payloads, never logging credentials or the key, keeping secrets out of source, constant-time comparison of keys/auth tags, and treating capture artifacts as live secrets.
 
 ### error-handling.md
-**Scope**: Path-scoped (`custom_components/plejd/**`)
+**Scope**: Path-scoped (`custom_components/plejd_cloud/**`)
 
 Loads when touching integration code. Home Assistant error conventions: the right typed exception (`ConfigEntryAuthFailed` / `ConfigEntryNotReady` / `UpdateFailed` / `HomeAssistantError`), never swallow, distinguish expected failures (BLE out of range, unauthenticated notification) from bugs, retry only transient BLE/cloud failures with backoff, no secret leaks in messages, no fire-and-forget coroutines.
 

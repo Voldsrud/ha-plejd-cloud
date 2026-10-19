@@ -67,7 +67,7 @@ out[i]     = data[i] XOR keystream[i % 16]
   `00 11 22 33 44 55 66 77 88 99 AA BB CC DD EE FF` for an unconfigured device.
 - Encryption applies only to firmware `>= 20160801163820`; older devices are plaintext.
 
-Implemented in [`custom_components/plejd/crypto.py`](../custom_components/plejd/crypto.py).
+Implemented in [`custom_components/plejd_cloud/crypto.py`](../custom_components/plejd_cloud/crypto.py).
 
 **Login response — `Response(challenge, key)`:**
 

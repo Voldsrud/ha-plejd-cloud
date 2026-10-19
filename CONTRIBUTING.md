@@ -7,7 +7,7 @@ integration, so most features start from a capture of the Plejd app's behaviour.
 
 ```bash
 uv sync --dev
-uv run pytest tests/ -v --cov=custom_components/plejd --cov-fail-under=100
+uv run pytest tests/ -v --cov=custom_components/plejd_cloud --cov-fail-under=100
 uv run ruff check custom_components/ tests/ tools/
 uv run ruff format --check custom_components/ tests/ tools/
 ```

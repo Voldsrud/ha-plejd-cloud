@@ -1,5 +1,5 @@
 ---
-applyTo: "custom_components/plejd/**,tools/**"
+applyTo: "custom_components/plejd_cloud/**,tools/**"
 ---
 <!-- dotclaude:managed — generated from .claude/rules/security.md by /dotclaude:init. Edit the rule, not this file. -->
 

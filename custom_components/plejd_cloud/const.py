@@ -7,7 +7,7 @@ docs/reverse_engineering.md for the full decode.
 
 from __future__ import annotations
 
-DOMAIN = "plejd"
+DOMAIN = "plejd_cloud"
 
 # Prefix for a room's pseudo-device identifier/unique_id (PlejdRoomLight). Rooms live in the
 # same (DOMAIN, id) identifier namespace as real Plejd devices but have no Parse cloud object

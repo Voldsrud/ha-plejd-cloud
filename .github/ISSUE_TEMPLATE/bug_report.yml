@@ -60,7 +60,7 @@ body:
       label: Install method
       options:
         - HACS
-        - Manual (copied custom_components/plejd)
+        - Manual (copied custom_components/plejd_cloud)
     validations:
       required: true
   - type: input
@@ -83,7 +83,7 @@ body:
     id: logs
     attributes:
       label: Relevant log output
-      description: Set `custom_components.plejd` to debug, reproduce, and paste the **redacted** log. This is rendered as code, no backticks needed.
+      description: Set `custom_components.plejd_cloud` to debug, reproduce, and paste the **redacted** log. This is rendered as code, no backticks needed.
       render: text
     validations:
       required: false

@@ -27,8 +27,8 @@ Plejd is local **BLE**: the phone (or HA) connects to one mesh device over GATT 
 
 ## 2. Decode
 
-- The on-air payloads are **encrypted** with the site crypto key (AES, keyed on the connected device's BLE address). Decode with the codec in `custom_components/plejd/crypto.py` — feed it the captured frames + the key from your own cloud capture. Without the key the bytes are opaque; that's expected.
-- Cross-check field names and command opcodes against `custom_components/plejd/const.py`. Keep wire/cloud keys verbatim (`cryptoKey`, `outputAddress`, `deviceId`) — don't snake-case them.
+- The on-air payloads are **encrypted** with the site crypto key (AES, keyed on the connected device's BLE address). Decode with the codec in `custom_components/plejd_cloud/crypto.py` — feed it the captured frames + the key from your own cloud capture. Without the key the bytes are opaque; that's expected.
+- Cross-check field names and command opcodes against `custom_components/plejd_cloud/const.py`. Keep wire/cloud keys verbatim (`cryptoKey`, `outputAddress`, `deviceId`) — don't snake-case them.
 
 ## 3. Handle the artifacts (important)
 
