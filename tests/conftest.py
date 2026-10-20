@@ -278,10 +278,13 @@ except ImportError:
     class _HVACAction(str, enum.Enum):
         HEATING = "heating"
         IDLE = "idle"
+        OFF = "off"
 
     class _ClimateEntityFeature(enum.IntFlag):
         TARGET_TEMPERATURE = 1
         PRESET_MODE = 16
+        TURN_OFF = 128
+        TURN_ON = 256
 
     class _ClimateEntity:
         def async_on_remove(self, func):

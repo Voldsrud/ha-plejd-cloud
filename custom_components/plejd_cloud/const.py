@@ -179,19 +179,21 @@ CMD_TRM_TEMP_READING = 0x045B  # temperature reading [sensor] -> u16le C*10
 CMD_MESH_GROUP_MEMBERSHIP = 0x0008
 
 # Thermostat operating modes (Plejd OperatingMode enum) -> HA presets.
+TRM_MODE_SERVICE = 0  # thermostat off (shown as HVACMode.OFF, not a preset)
 TRM_MODE_VACATION = 2
 TRM_MODE_BOOST = 3
 TRM_MODE_FROST_PROTECTION = 4
 TRM_MODE_NIGHT_REDUCTION = 5
 TRM_MODE_DAY_REDUCTION = 6
 TRM_MODE_NORMAL = 7
+# HA's standard preset names (home/away/sleep/eco get translated labels and icons).
 TRM_PRESETS = {
-    TRM_MODE_NORMAL: "none",
+    TRM_MODE_NORMAL: "home",
+    TRM_MODE_VACATION: "away",
     TRM_MODE_BOOST: "boost",
     TRM_MODE_FROST_PROTECTION: "frost",
-    TRM_MODE_NIGHT_REDUCTION: "night",
-    TRM_MODE_DAY_REDUCTION: "day",
-    TRM_MODE_VACATION: "vacation",
+    TRM_MODE_NIGHT_REDUCTION: "sleep",
+    TRM_MODE_DAY_REDUCTION: "eco",
 }
 
 # ── Cloud (Parse Server) — production constants, app-level (not user secrets) ──

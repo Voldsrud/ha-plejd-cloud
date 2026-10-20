@@ -17,7 +17,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .cloud import PlejdCloudDevice
-from .const import CATEGORY_CLIMATE, DOMAIN, TRM_MODE_NORMAL, TRM_PRESETS
+from .const import CATEGORY_CLIMATE, DOMAIN, TRM_MODE_NORMAL, TRM_MODE_SERVICE, TRM_PRESETS
 from .coordinator import PlejdCoordinator
 
 _PRESET_TO_MODE = {name: mode for mode, name in TRM_PRESETS.items()}
@@ -39,9 +39,14 @@ class PlejdClimate(ClimateEntity):
     _attr_has_entity_name = True
     _attr_name = None
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
-    _attr_hvac_modes = [HVACMode.HEAT]
+    _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT]
     _attr_hvac_mode = HVACMode.HEAT
-    _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
+    _attr_supported_features = (
+        ClimateEntityFeature.TARGET_TEMPERATURE
+        | ClimateEntityFeature.PRESET_MODE
+        | ClimateEntityFeature.TURN_OFF
+        | ClimateEntityFeature.TURN_ON
+    )
     _attr_preset_modes = list(TRM_PRESETS.values())
     _attr_target_temperature_step = 1
     _attr_min_temp = 5
@@ -58,12 +63,8 @@ class PlejdClimate(ClimateEntity):
             model=device.model,
         )
         self._attr_preset_mode = TRM_PRESETS[TRM_MODE_NORMAL]
-        # The real setpoint isn't readable without a capture (see module docstring), but
-        # leaving this unset until the first successful async_set_temperature makes the
-        # entity report no target at all - callers (including our own panel) can't tell
-        # "no reading yet" from "off", and a UI that disables its controls on a null target
-        # can never send the very first setpoint. A reasonable room-temperature default
-        # is a starting point to adjust from, not a claim about the device's real state.
+        # Placeholder until the first state report: a null target would disable a UI's
+        # +/- controls, so the very first setpoint could never be sent.
         self._attr_target_temperature = 21.0
         climate_settings = (device.output_settings or {}).get("climateSettings") or {}
         # PWM regulation reports a duty cycle in the same bits, not temperatures.
@@ -87,11 +88,26 @@ class PlejdClimate(ClimateEntity):
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         mode = _PRESET_TO_MODE.get(preset_mode, TRM_MODE_NORMAL)
         await self._coordinator.async_set_climate_mode(self._device.address, mode)
-        self._attr_preset_mode = preset_mode
+        self._attr_preset_mode = TRM_PRESETS[mode]
+        self._attr_hvac_mode = HVACMode.HEAT
+        self._clear_off_action()
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
-        # Plejd thermostats only heat; the mode is fixed.
-        return
+        if hvac_mode == HVACMode.OFF:
+            await self._coordinator.async_set_climate_mode(self._device.address, TRM_MODE_SERVICE)
+            self._attr_hvac_mode = HVACMode.OFF
+            self._attr_hvac_action = HVACAction.OFF
+            return
+        await self._coordinator.async_set_climate_mode(self._device.address, TRM_MODE_NORMAL)
+        self._attr_hvac_mode = HVACMode.HEAT
+        self._attr_preset_mode = TRM_PRESETS[TRM_MODE_NORMAL]
+        self._clear_off_action()
+
+    async def async_turn_off(self) -> None:
+        await self.async_set_hvac_mode(HVACMode.OFF)
+
+    async def async_turn_on(self) -> None:
+        await self.async_set_hvac_mode(HVACMode.HEAT)
 
     async def async_added_to_hass(self) -> None:
         self.async_on_remove(self._coordinator.async_add_listener(self._handle_update))
@@ -109,7 +125,19 @@ class PlejdClimate(ClimateEntity):
             return
         self._attr_current_temperature = state.current
         self._attr_target_temperature = state.target
-        if state.mode is not None and state.mode in TRM_PRESETS:
-            self._attr_preset_mode = TRM_PRESETS[state.mode]
+        if state.mode == TRM_MODE_SERVICE:
+            self._attr_hvac_mode = HVACMode.OFF
+            self._attr_hvac_action = HVACAction.OFF
+            return
+        if state.mode is not None:
+            self._attr_hvac_mode = HVACMode.HEAT
+            if state.mode in TRM_PRESETS:
+                self._attr_preset_mode = TRM_PRESETS[state.mode]
         if state.heating is not None:
             self._attr_hvac_action = HVACAction.HEATING if state.heating else HVACAction.IDLE
+        elif state.mode is not None:
+            self._clear_off_action()
+
+    def _clear_off_action(self) -> None:
+        if getattr(self, "_attr_hvac_action", None) == HVACAction.OFF:
+            self._attr_hvac_action = None

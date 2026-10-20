@@ -69,9 +69,15 @@ def test_climate_available_follows_coordinator():
 
 def test_attributes():
     c = PlejdClimate(_Coordinator([]), _device())
-    assert c._attr_hvac_modes == [HVACMode.HEAT]
-    assert c._attr_supported_features == (ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE)
-    assert "boost" in c._attr_preset_modes and c._attr_preset_mode == "none"
+    assert c._attr_hvac_modes == [HVACMode.OFF, HVACMode.HEAT]
+    assert c._attr_supported_features == (
+        ClimateEntityFeature.TARGET_TEMPERATURE
+        | ClimateEntityFeature.PRESET_MODE
+        | ClimateEntityFeature.TURN_OFF
+        | ClimateEntityFeature.TURN_ON
+    )
+    assert c._attr_preset_modes == ["home", "away", "boost", "frost", "sleep", "eco"]
+    assert c._attr_preset_mode == "home"
     assert c._attr_unique_id == "t1" and c._attr_device_info["model"] == "TRM-01"
 
 
@@ -106,14 +112,56 @@ async def test_set_preset_maps_to_mode():
 
 async def test_set_unknown_preset_falls_back_to_normal():
     coord = _Coordinator([])
-    await PlejdClimate(coord, _device()).async_set_preset_mode("weird")
+    c = PlejdClimate(coord, _device())
+    await c.async_set_preset_mode("weird")
     assert coord.modes == [(9, 7)]  # OperatingMode.Normal
+    assert c._attr_preset_mode == "home"
 
 
-async def test_set_hvac_mode_noop():
+async def test_hvac_off_sends_service_mode_and_heat_sends_normal():
     coord = _Coordinator([])
-    await PlejdClimate(coord, _device()).async_set_hvac_mode(HVACMode.HEAT)
-    assert coord.setpoints == [] and coord.modes == []
+    c = PlejdClimate(coord, _device())
+    await c.async_set_hvac_mode(HVACMode.OFF)
+    assert c._attr_hvac_mode == HVACMode.OFF and c._attr_hvac_action == HVACAction.OFF
+    await c.async_set_hvac_mode(HVACMode.HEAT)
+    assert coord.modes == [(9, 0), (9, 7)]
+    assert c._attr_hvac_mode == HVACMode.HEAT and c._attr_preset_mode == "home"
+    assert c._attr_hvac_action is None
+
+
+async def test_turn_off_and_on_use_the_hvac_modes():
+    coord = _Coordinator([])
+    c = PlejdClimate(coord, _device())
+    await c.async_turn_off()
+    await c.async_turn_on()
+    assert coord.modes == [(9, 0), (9, 7)]
+
+
+async def test_choosing_a_preset_while_off_turns_heating_back_on():
+    coord = _Coordinator([])
+    c = PlejdClimate(coord, _device())
+    await c.async_set_hvac_mode(HVACMode.OFF)
+    await c.async_set_preset_mode("sleep")
+    assert coord.modes[-1] == (9, 5)  # OperatingMode.NightTimeReduction
+    assert c._attr_hvac_mode == HVACMode.HEAT and c._attr_hvac_action is None
+
+
+def test_service_mode_report_shows_off():
+    coord = _Coordinator([])
+    coord.climate[9] = ThermostatState(mode=0, target=20, current=19, heating=False)
+    c = PlejdClimate(coord, _device())
+    assert c._attr_hvac_mode == HVACMode.OFF and c._attr_hvac_action == HVACAction.OFF
+    assert c._attr_current_temperature == 19
+
+
+def test_report_after_off_shows_heat_again():
+    coord = _Coordinator([])
+    coord.climate[9] = ThermostatState(mode=0, target=20, current=19, heating=None)
+    c = PlejdClimate(coord, _device())
+    coord.climate[9] = ThermostatState(mode=6, target=20, current=19, heating=None)
+    c._handle_update()
+    assert c._attr_hvac_mode == HVACMode.HEAT and c._attr_preset_mode == "eco"
+    assert c._attr_hvac_action is None
 
 
 async def test_added_to_hass_subscribes():
@@ -134,7 +182,7 @@ def test_keeps_the_preset_when_the_mode_is_unknown_and_heating_unreported():
     coord = _Coordinator([])
     coord.climate[9] = ThermostatState(mode=None, target=20, current=21, heating=None)
     c = PlejdClimate(coord, _device())
-    assert c._attr_preset_mode == "none" and c._attr_current_temperature == 21
+    assert c._attr_preset_mode == "home" and c._attr_current_temperature == 21
     assert getattr(c, "_attr_hvac_action", None) is None
 
 
